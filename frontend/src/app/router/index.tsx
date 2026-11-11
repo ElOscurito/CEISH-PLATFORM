@@ -14,6 +14,8 @@ import { ResearchManagementPanel } from '../../features/admin/components/Researc
 import { ResearchDetailPage } from '../../features/admin/components/ResearchDetailPage';
 import { StratificationDashboard } from '../../features/evaluator/StratificationDashboard';
 import { QualificationDashboard } from '../../features/evaluator/QualificationDashboard';
+import { ConsultantRequestsPage } from '../../features/extensions/consultants/pages/ConsultantRequestsPage';
+import { ConsultantFeedbackView } from '../../features/extensions/consultants/components/ConsultantFeedbackView';
 
 function RootRedirect() {
   const currentUser = useAuthStore((s) => s.currentUser);
@@ -46,6 +48,7 @@ export function AppRouter() {
         <Route path="/evaluacion" element={<RequireRole role="evaluator"><EvaluationPage /></RequireRole>} />
         <Route path="/evaluacion/:id" element={<RequireRole role="evaluator"><EvaluationPage /></RequireRole>} />
         <Route path="/evaluador/revision/:submissionId" element={<RequireRole role="evaluator"><ReviewPage /></RequireRole>} />
+        <Route path="/evaluador/interconsultas/:requestId" element={<RequireRole role="evaluator"><ConsultantFeedbackView /></RequireRole>} />
 
         {/* Dashboard routes wrapped in AppShell */}
         <Route element={<AppShell />}>
@@ -53,6 +56,7 @@ export function AppRouter() {
           <Route path="/evaluador" element={<RequireRole role="evaluator"><EvaluatorDashboard /></RequireRole>} />
           <Route path="/evaluador/estratificacion" element={<RequireRole role="evaluator"><StratificationDashboard /></RequireRole>} />
           <Route path="/evaluador/calificacion" element={<RequireRole role="evaluator"><QualificationDashboard /></RequireRole>} />
+          <Route path="/evaluador/interconsultas" element={<RequireRole role="evaluator"><ConsultantRequestsPage /></RequireRole>} />
           <Route path="/admin" element={<RequireRole role="admin"><AdminDashboard /></RequireRole>} />
           <Route path="/admin/solicitudes" element={<RequireRole role="admin"><RegistrationRequestsPanel /></RequireRole>} />
           <Route path="/admin/investigaciones" element={<RequireRole role="admin"><ResearchManagementPanel /></RequireRole>} />

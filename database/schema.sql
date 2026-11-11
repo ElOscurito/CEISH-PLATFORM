@@ -304,3 +304,55 @@ CREATE TABLE annotations (
 );
 
 CREATE INDEX idx_annotations_criteria ON annotations(criteria_evaluation_id);
+
+-- ============================================================================
+-- EXTENSIONES DE VINCULACIÓN (Prefijo ext_)
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- ext_consultant_profiles (Consultores Permanentes y Temporales)
+-- ----------------------------------------------------------------------------
+CREATE TABLE ext_consultant_profiles (
+  user_id         UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  consultant_type VARCHAR(20) NOT NULL CHECK (consultant_type IN ('permanent_dentistry', 'temporary_external')),
+  faculty         VARCHAR(120) NOT NULL DEFAULT 'Facultad de Odontología',
+  specialty       VARCHAR(150) NOT NULL,
+  department      VARCHAR(120),
+  is_active       BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ----------------------------------------------------------------------------
+-- ext_consultation_requests (Solicitudes de interconsulta técnica)
+-- ----------------------------------------------------------------------------
+CREATE TABLE ext_consultation_requests (
+  id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  submission_id       UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+  requester_member_id UUID NOT NULL REFERENCES users(id),
+  consultant_id       UUID NOT NULL REFERENCES users(id),
+  status              VARCHAR(20) NOT NULL DEFAULT 'pending'
+                        CHECK (status IN ('pending', 'in_progress', 'completed', 'declined', 'expired')),
+  instructions        TEXT,
+  due_date            TIMESTAMPTZ,
+  requested_at        TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  completed_at        TIMESTAMPTZ
+);
+
+CREATE INDEX idx_ext_consult_requests_sub ON ext_consultation_requests(submission_id);
+CREATE INDEX idx_ext_consult_requests_user ON ext_consultation_requests(consultant_id, status);
+
+-- ----------------------------------------------------------------------------
+-- ext_consultation_feedbacks (Recomendaciones técnicas por criterio)
+-- ----------------------------------------------------------------------------
+CREATE TABLE ext_consultation_feedbacks (
+  id                   UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  request_id           UUID NOT NULL REFERENCES ext_consultation_requests(id) ON DELETE CASCADE,
+  criteria_label       VARCHAR(255) NOT NULL,
+  suggested_status     VARCHAR(20) CHECK (suggested_status IN ('approved', 'rejected', 'neutral')),
+  technical_comments   TEXT NOT NULL,
+  is_accepted_by_member BOOLEAN DEFAULT FALSE,
+  created_at           TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_ext_consult_feedbacks_req ON ext_consultation_feedbacks(request_id);
+

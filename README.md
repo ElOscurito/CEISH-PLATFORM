@@ -37,16 +37,16 @@ Las migraciones aplicadas no se editan: los cambios de esquema se agregan con un
 
 ### Límites entre módulos
 
-| Módulo | Responsabilidad |
-| --- | --- |
-| `auth` | Login, registro, sesión y revisión de solicitudes |
-| `users` | Perfiles y listados limitados por rol y asignación |
-| `submissions` | Entregas, documentos y flujos de revisión |
-| `stratification` | Asignación CEISH, conflicto y Anexo 27 |
-| `qualification` | Checklist Anexo 12, correcciones y ciclos de evaluación |
-| `reviews` | Revisión académica por etapas |
-| `annexes` | Emisión y descarga de documentos institucionales |
-| `admin` | Supervisión y asignaciones administrativas |
+| Módulo            | Responsabilidad                                          |
+| ------------------ | -------------------------------------------------------- |
+| `auth`           | Login, registro, sesión y revisión de solicitudes      |
+| `users`          | Perfiles y listados limitados por rol y asignación      |
+| `submissions`    | Entregas, documentos y flujos de revisión               |
+| `stratification` | Asignación CEISH, conflicto y Anexo 27                  |
+| `qualification`  | Checklist Anexo 12, correcciones y ciclos de evaluación |
+| `reviews`        | Revisión académica por etapas                          |
+| `annexes`        | Emisión y descarga de documentos institucionales        |
+| `admin`          | Supervisión y asignaciones administrativas              |
 
 Las contraseñas se guardan con `scrypt`. La sesión se transporta en una cookie firmada `HttpOnly`, `SameSite=Lax` y `Secure` en producción; cada solicitud protegida vuelve a consultar el usuario y rol vigentes. Los permisos se aplican en NestJS, además de cualquier restricción visual del frontend.
 
@@ -71,7 +71,6 @@ Las contraseñas se guardan con `scrypt`. La sesión se transporta en una cookie
    npm ci
    npx prisma generate
    ```
-
 3. Inicia PostgreSQL, MinIO y NestJS:
 
    ```bash
@@ -84,7 +83,6 @@ Las contraseñas se guardan con `scrypt`. La sesión se transporta en una cookie
    ```
 
    El backend escucha en `http://localhost:3000`; Swagger está en `http://localhost:3000/api/docs`.
-
 4. En otra terminal, desde la raíz del repositorio, inicia React/Vite:
 
    ```bash
@@ -102,15 +100,15 @@ Docker ejecuta `database/schema.sql` y `database/seed.sql` únicamente al crear 
 
 Las variables principales están en `.env.example`; `backend/.env.example` documenta valores para ejecutar NestJS fuera de Docker. Dentro de Compose, el backend usa los nombres de servicio `postgres` y `minio`. En producción se deben establecer `SESSION_SECRET` (aleatorio, 32 caracteres o más), `DATABASE_PASSWORD`, claves de MinIO y `CORS_ORIGIN` explícitos; no se deben reutilizar las credenciales de demostración.
 
-| Variable | Uso |
-| --- | --- |
-| `VITE_USE_NEST_BACKEND` | Activa el proxy `/api` desde Vite a NestJS |
-| `BACKEND_URL` | Destino del proxy local, por defecto `http://localhost:3000` |
-| `DATABASE_URL` | Conexión Prisma a PostgreSQL |
-| `SESSION_SECRET` | Firma de cookies de sesión |
-| `CORS_ORIGIN` | Origen del frontend autorizado por NestJS |
-| `MINIO_ENDPOINT`, `MINIO_PORT` | Conexión del backend al almacenamiento |
-| `UPLOAD_MAX_MB` | Límite de tamaño de carga |
+| Variable                           | Uso                                                            |
+| ---------------------------------- | -------------------------------------------------------------- |
+| `VITE_USE_NEST_BACKEND`          | Activa el proxy `/api` desde Vite a NestJS                   |
+| `BACKEND_URL`                    | Destino del proxy local, por defecto `http://localhost:3000` |
+| `DATABASE_URL`                   | Conexión Prisma a PostgreSQL                                  |
+| `SESSION_SECRET`                 | Firma de cookies de sesión                                    |
+| `CORS_ORIGIN`                    | Origen del frontend autorizado por NestJS                      |
+| `MINIO_ENDPOINT`, `MINIO_PORT` | Conexión del backend al almacenamiento                        |
+| `UPLOAD_MAX_MB`                  | Límite de tamaño de carga                                    |
 
 ## Comandos útiles
 

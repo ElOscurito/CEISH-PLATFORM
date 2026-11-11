@@ -35,6 +35,9 @@ model User {
   reviews            Review[]
   teacherAssignments Assignment[]        @relation("TeacherAssignments")
   studentAssignments Assignment[]        @relation("StudentAssignments")
+  consultantProfile            ExtConsultantProfile?
+  consultationRequestsSent     ExtConsultationRequest[]  @relation("ConsultationRequestsSent")
+  consultationRequestsReceived ExtConsultationRequest[]  @relation("ConsultationRequestsReceived")
 
   @@index([roleId], map: "idx_users_role")
   @@map("users")
@@ -88,6 +91,7 @@ model Submission {
   annexes               ResearchAnnex[]
   qualificationCase     QualificationCase?
   review                Review?
+  consultationRequests  ExtConsultationRequest[]
 
   @@index([studentId], map: "idx_submissions_student")
   @@index([status], map: "idx_submissions_status")
@@ -280,3 +284,55 @@ model WorkflowEvent {
 
   @@map("workflow_events")
 }
+
+// ============================================================
+// Extensiones de Vinculación (Prefijo ext_)
+// ============================================================
+
+model ExtConsultantProfile {
+  userId         String   @id @map("user_id") @db.Uuid
+  consultantType String   @map("consultant_type") @db.VarChar(20)
+  faculty        String   @default("Facultad de Odontología") @db.VarChar(120)
+  specialty      String   @db.VarChar(150)
+  department     String?  @db.VarChar(120)
+  isActive       Boolean  @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ext_consultant_profiles")
+}
+
+model ExtConsultationRequest {
+  id                String                    @id @default(uuid()) @db.Uuid
+  submissionId      String                    @map("submission_id") @db.Uuid
+  submission        Submission                @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  requesterMemberId String                    @map("requester_member_id") @db.Uuid
+  requesterMember   User                      @relation("ConsultationRequestsSent", fields: [requesterMemberId], references: [id])
+  consultantId      String                    @map("consultant_id") @db.Uuid
+  consultant        User                      @relation("ConsultationRequestsReceived", fields: [consultantId], references: [id])
+  status            String                    @default("pending") @db.VarChar(20)
+  instructions      String?                   @db.Text
+  dueDate           DateTime?                 @map("due_date") @db.Timestamptz
+  requestedAt       DateTime                  @default(now()) @map("requested_at") @db.Timestamptz
+  completedAt       DateTime?                 @map("completed_at") @db.Timestamptz
+  feedbacks         ExtConsultationFeedback[]
+
+  @@index([submissionId], map: "idx_ext_consult_requests_sub")
+  @@index([consultantId, status], map: "idx_ext_consult_requests_user")
+  @@map("ext_consultation_requests")
+}
+
+model ExtConsultationFeedback {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  requestId          String                 @map("request_id") @db.Uuid
+  request            ExtConsultationRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  criteriaLabel      String                 @map("criteria_label") @db.VarChar(255)
+  suggestedStatus    String?                @map("suggested_status") @db.VarChar(20)
+  technicalComments  String                 @map("technical_comments") @db.Text
+  isAcceptedByMember Boolean                @default(false) @map("is_accepted_by_member")
+  createdAt          DateTime               @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([requestId], map: "idx_ext_consult_feedbacks_req")
+  @@map("ext_consultation_feedbacks")
+}
+

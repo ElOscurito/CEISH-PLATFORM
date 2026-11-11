@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useReview } from '../hooks/useReview';
 import { usePDFViewer } from '../../../features/evaluation/hooks/usePDFViewer';
@@ -12,6 +12,10 @@ import type { StudentSubmission } from '../../../shared/types/platform.types';
 import type { EvaluationSession } from '../../../features/evaluation/types/evaluation.types';
 import { useAuthStore } from '../../../store/authStore';
 import { useReviewStore } from '../../../store/reviewStore';
+import { ConsultantPickerModal } from '../../extensions/consultants/components/ConsultantPickerModal';
+import { ConsultationMergePanel } from '../../extensions/consultants/components/ConsultationMergePanel';
+import { consultantService } from '../../extensions/consultants/services/consultantService';
+import type { ConsultationRequest, ConsultationFeedback } from '../../extensions/consultants/types/consultant.types';
 import '../../../features/evaluation/evaluation.css';
 import '../evaluator.css';
 
@@ -82,6 +86,8 @@ export function ReviewPage() {
   const [submission, setSubmission] = useState<StudentSubmission | null>(null);
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
   const [activeCriterionId, setActiveCriterionId] = useState<string | null>(null);
+  const [consultations, setConsultations] = useState<ConsultationRequest[]>([]);
+  const [showPickerModal, setShowPickerModal] = useState(false);
 
   const {
     review,
@@ -112,6 +118,45 @@ export function ReviewPage() {
   useEffect(() => {
     if (submissionId) loadFile(storageService.getRawUrl(submissionId));
   }, [submissionId, loadFile]);
+
+  const loadConsultations = useCallback(() => {
+    if (!submissionId) return;
+    consultantService
+      .getRequestsForSubmission(submissionId)
+      .then(setConsultations)
+      .catch(() => {});
+  }, [submissionId]);
+
+  useEffect(() => {
+    loadConsultations();
+  }, [loadConsultations]);
+
+  const handleAdoptAll = (feedbacks: ConsultationFeedback[]) => {
+    feedbacks.forEach((fb, idx) => {
+      if (currentStage?.criteria[idx]) {
+        const criterionId = currentStage.criteria[idx].id;
+        updateObservation(criterionId, fb.technicalComments);
+        if (fb.suggestedStatus === 'approved' || fb.suggestedStatus === 'rejected') {
+          updateStatus(criterionId, fb.suggestedStatus);
+        }
+      }
+    });
+  };
+
+  const handleAdoptSingle = (fb: ConsultationFeedback) => {
+    const match =
+      currentStage?.criteria.find(
+        (c) =>
+          c.label.toLowerCase().includes(fb.criteriaLabel.toLowerCase()) ||
+          fb.criteriaLabel.toLowerCase().includes(c.label.toLowerCase()),
+      ) ?? currentStage?.criteria[0];
+    if (match) {
+      updateObservation(match.id, fb.technicalComments);
+      if (fb.suggestedStatus === 'approved' || fb.suggestedStatus === 'rejected') {
+        updateStatus(match.id, fb.suggestedStatus);
+      }
+    }
+  };
 
   if (!review || !currentStage || !stageStats) {
     return (
@@ -169,6 +214,24 @@ export function ReviewPage() {
         </div>
 
         <div className="eval-header__right">
+          <button
+            type="button"
+            className="eval-btn eval-btn--outline"
+            style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6 }}
+            onClick={() => setShowPickerModal(true)}
+            title="Solicitar criterio técnico a un docente de Odontología"
+          >
+            <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+              <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+            </svg>
+            Interconsulta Odontología
+            {consultations.length > 0 && (
+              <span className="consultants-badge" style={{ padding: '1px 6px', fontSize: 10 }}>
+                {consultations.length}
+              </span>
+            )}
+          </button>
+
           {!isComplete && (
             <>
               <button className="eval-btn eval-btn--ghost" onClick={handleSave}>Guardar</button>
@@ -213,17 +276,38 @@ export function ReviewPage() {
             />
           )}
         </main>
-        <CriteriaPanel
-          session={stageAsSession}
-          stats={stageStats}
-          activeCriterionId={activeCriterionId}
-          currentPdfPage={pdf.currentPage}
-          onActivateCriterion={setActiveCriterionId}
-          onStatusChange={isComplete ? () => {} : updateStatus}
-          onObservationChange={isComplete ? () => {} : updateObservation}
-          onPageRefChange={isComplete ? () => {} : updatePageRef}
-        />
+        <div style={{ width: '420px', display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', background: '#0a0d12' }}>
+          <CriteriaPanel
+            session={stageAsSession}
+            stats={stageStats}
+            activeCriterionId={activeCriterionId}
+            currentPdfPage={pdf.currentPage}
+            onActivateCriterion={setActiveCriterionId}
+            onStatusChange={isComplete ? () => {} : updateStatus}
+            onObservationChange={isComplete ? () => {} : updateObservation}
+            onPageRefChange={isComplete ? () => {} : updatePageRef}
+          />
+          {consultations.length > 0 && (
+            <div style={{ padding: '0 16px 20px 16px' }}>
+              <ConsultationMergePanel
+                requests={consultations}
+                onRefresh={loadConsultations}
+                onAdoptAll={handleAdoptAll}
+                onAdoptSingle={handleAdoptSingle}
+              />
+            </div>
+          )}
+        </div>
       </div>
+
+      <ConsultantPickerModal
+        submissionId={submissionId}
+        isOpen={showPickerModal}
+        onClose={() => setShowPickerModal(false)}
+        onSuccess={() => {
+          loadConsultations();
+        }}
+      />
 
       {showFinalizeModal && (
         <FinalizeModal

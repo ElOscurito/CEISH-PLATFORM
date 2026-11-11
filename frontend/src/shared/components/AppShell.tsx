@@ -54,6 +54,16 @@ const EVALUATOR_NAV: NavItem[] = [
       </svg>
     ),
   },
+  {
+    to: '/evaluador/interconsultas',
+    label: 'Interconsultas',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <path d="M2 4.5A2.5 2.5 0 014.5 2h9A2.5 2.5 0 0116 4.5v6a2.5 2.5 0 01-2.5 2.5h-5.2l-3.8 2.5v-2.5H4.5A2.5 2.5 0 012 10.5v-6z" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M6 6.5h6M6 9h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
 ];
 
 const ADMIN_NAV: NavItem[] = [

@@ -1,0 +1,258 @@
+/* ==========================================================================
+   Módulo de Consultores de Odontología (Vinculación CEISH)
+   ========================================================================== */
+
+.consultants-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(3, 105, 161, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.consultants-badge--completed {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, 0.3);
+}
+
+.consultants-badge--pending {
+  background: rgba(234, 179, 8, 0.15);
+  color: #facc15;
+  border-color: rgba(250, 204, 21, 0.3);
+}
+
+/* Modal Picker */
+.consultant-picker-modal {
+  max-width: 650px;
+  width: 90vw;
+}
+
+.consultant-search-box {
+  width: 100%;
+  padding: 10px 14px;
+  background: #0e1115;
+  border: 1px solid #2a3038;
+  border-radius: 8px;
+  color: #f2f4f7;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.consultant-search-box:focus {
+  outline: none;
+  border-color: #38bdf8;
+}
+
+.consultant-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 240px;
+  overflow-y: auto;
+  margin-bottom: 16px;
+  padding-right: 4px;
+}
+
+.consultant-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #171b20;
+  border: 1px solid #2a3038;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.consultant-option:hover {
+  border-color: #38bdf8;
+  background: #1e242c;
+}
+
+.consultant-option--selected {
+  border-color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.consultant-option__info {
+  display: flex;
+  flex-direction: column;
+}
+
+.consultant-option__name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f2f4f7;
+}
+
+.consultant-option__specialty {
+  font-size: 11px;
+  color: #38bdf8;
+}
+
+/* Panel de Fusión y Comparación (para Miembro Titular) */
+.merge-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: #12161b;
+  border: 1px solid #2a3038;
+  border-radius: 9px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.merge-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #2a3038;
+  padding-bottom: 12px;
+}
+
+.merge-panel__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #f2f4f7;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.merge-panel__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.merge-card {
+  background: #171b20;
+  border: 1px solid #30363f;
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.merge-card__criterion {
+  font-size: 13px;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.merge-card__status {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.merge-card__status--approved {
+  background: rgba(34, 197, 94, 0.2);
+  color: #4ade80;
+}
+
+.merge-card__status--rejected {
+  background: rgba(239, 68, 68, 0.2);
+  color: #f87171;
+}
+
+.merge-card__status--neutral {
+  background: rgba(148, 163, 184, 0.2);
+  color: #94a3b8;
+}
+
+.merge-card__comment {
+  font-size: 12px;
+  color: #cbd5e1;
+  background: #0e1115;
+  padding: 8px 10px;
+  border-radius: 6px;
+  border-left: 3px solid #38bdf8;
+  white-space: pre-wrap;
+}
+
+/* Interfaz del Consultor (Feedback View) */
+.consultant-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #0a0d12;
+}
+
+.consultant-header {
+  padding: 12px 24px;
+  background: #12161b;
+  border-bottom: 1px solid #2a3038;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.consultant-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.consultant-doc-panel {
+  flex: 1;
+  height: 100%;
+  border-right: 1px solid #2a3038;
+  overflow: auto;
+}
+
+.consultant-form-panel {
+  width: 440px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #12161b;
+  overflow-y: auto;
+  padding: 20px;
+  gap: 16px;
+}
+
+.consultant-form-group {
+  background: #171b20;
+  border: 1px solid #30363f;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.consultant-form-group__title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f2f4f7;
+}
+
+.consultant-radio-group {
+  display: flex;
+  gap: 12px;
+}
+
+.consultant-radio-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.consultant-radio-label input[type="radio"]:checked + span {
+  color: #f2f4f7;
+  font-weight: 600;
+}
