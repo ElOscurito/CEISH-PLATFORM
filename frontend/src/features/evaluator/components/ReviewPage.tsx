@@ -1,3 +1,4 @@
+import { SubmissionFormsPanel } from '../../extensions/dynamic-forms/SubmissionFormsPanel';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useReview } from '../hooks/useReview';
@@ -64,7 +65,7 @@ function FinalizeModal({ onConfirm, onCancel }: FinalizeModalProps) {
           <button className="eval-btn eval-btn--outline" onClick={onCancel}>Cancelar</button>
           <button
             className="eval-btn eval-btn--primary"
-            disabled={!comment.trim() || grade === ''}
+            disabled={!comment.trim() || grade === '' || !Number.isFinite(Number(grade)) || Number(grade)<0 || Number(grade)>10}
             onClick={() => onConfirm(comment, parseFloat(grade))}
           >
             Confirmar y finalizar
@@ -84,6 +85,7 @@ export function ReviewPage() {
   const [activeCriterionId, setActiveCriterionId] = useState<string | null>(null);
 
   const {
+    error, busy,
     review,
     currentStage,
     stageStats,
@@ -117,7 +119,7 @@ export function ReviewPage() {
     return (
       <div className="eval-loading">
         <div className="pdf-spinner" />
-        <span>Cargando revisión...</span>
+        <span role={error ? "alert" : "status"}>{error || "Cargando revisión..."}</span>
       </div>
     );
   }
@@ -171,13 +173,13 @@ export function ReviewPage() {
         <div className="eval-header__right">
           {!isComplete && (
             <>
-              <button className="eval-btn eval-btn--ghost" onClick={handleSave}>Guardar</button>
+              <button className="eval-btn eval-btn--ghost" disabled={busy} onClick={() => void handleSave()}>Guardar</button>
               {isLastStage ? (
-                <button className="eval-btn eval-btn--primary" onClick={() => setShowFinalizeModal(true)}>
+                <button className="eval-btn eval-btn--primary" disabled={busy} onClick={() => setShowFinalizeModal(true)}>
                   Finalizar entrega
                 </button>
               ) : (
-                <button className="eval-btn eval-btn--primary" onClick={handleAdvance}>
+                <button className="eval-btn eval-btn--primary" disabled={busy} onClick={() => void handleAdvance()}>
                   Siguiente etapa
                   <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
                     <path d="M5 3l4 3.5L5 10" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
@@ -189,6 +191,7 @@ export function ReviewPage() {
         </div>
       </header>
 
+      {error && <p role="alert" className="dynamic-error">{error}</p>}
       {/* ── Two-panel body (reuses existing components) ── */}
       <div className="eval-body">
         <main className="eval-pdf-panel">
@@ -213,23 +216,25 @@ export function ReviewPage() {
             />
           )}
         </main>
-        <CriteriaPanel
+        <aside className="dynamic-review-panel">
+        {currentStage.criteria.length > 0 && <CriteriaPanel
           session={stageAsSession}
           stats={stageStats}
           activeCriterionId={activeCriterionId}
           currentPdfPage={pdf.currentPage}
           onActivateCriterion={setActiveCriterionId}
-          onStatusChange={isComplete ? () => {} : updateStatus}
-          onObservationChange={isComplete ? () => {} : updateObservation}
-          onPageRefChange={isComplete ? () => {} : updatePageRef}
-        />
+          onStatusChange={isComplete || busy ? () => {} : updateStatus}
+          onObservationChange={isComplete || busy ? () => {} : updateObservation}
+          onPageRefChange={isComplete || busy ? () => {} : updatePageRef}
+        />}
+        <SubmissionFormsPanel key={`${submissionId}-${currentStage.id}`} submissionId={submissionId}/>
+        </aside>
       </div>
 
       {showFinalizeModal && (
         <FinalizeModal
           onConfirm={async (comment, grade) => {
-            await handleComplete(comment, grade);
-            setShowFinalizeModal(false);
+            if(await handleComplete(comment, grade)) setShowFinalizeModal(false);
           }}
           onCancel={() => setShowFinalizeModal(false)}
         />

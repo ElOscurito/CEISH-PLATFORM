@@ -1,3 +1,5 @@
+import { InitialSubmissionModal } from '../extensions/dynamic-forms/InitialSubmissionModal';
+import { SubmissionFormsPanel } from '../extensions/dynamic-forms/SubmissionFormsPanel';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { submissionsService } from '../../services/submissions';
@@ -93,14 +95,16 @@ export function SubmissionPage() {
         ) : submissions.length > 0 ? (
           <div className="student-submissions-list">
             {submissions.map((submission) => (
+              <section key={submission.id}>
               <SubmissionCard
-                key={submission.id}
                 submission={submission}
                 onView={handleView}
                 onEdit={() => { setEditingSubmission(submission); setModalMode('edit'); }}
                 onDelete={() => void handleDelete(submission)}
                 onSubmitCorrections={() => setCorrectionSubmission(submission)}
               />
+              <SubmissionFormsPanel submissionId={submission.id}/>
+              </section>
             ))}
           </div>
         ) : (
@@ -123,7 +127,8 @@ export function SubmissionPage() {
         )}
       </div>
 
-      {modalMode && (
+      {modalMode === 'create' && <InitialSubmissionModal onCancel={() => setModalMode(null)} onCreated={() => { setModalMode(null); void reloadSubmissions().catch(e => window.alert((e as Error).message)); }}/>}
+      {modalMode === 'edit' && (
         <UploadModal
           mode={modalMode}
           initialTitle={editingSubmission?.title}

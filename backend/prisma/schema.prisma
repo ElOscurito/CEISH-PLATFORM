@@ -88,6 +88,7 @@ model Submission {
   annexes               ResearchAnnex[]
   qualificationCase     QualificationCase?
   review                Review?
+  dynamicFormInstances  ExtFormInstance[]
 
   @@index([studentId], map: "idx_submissions_student")
   @@index([status], map: "idx_submissions_status")
@@ -279,4 +280,107 @@ model WorkflowEvent {
   occurredAt     DateTime @default(now()) @map("occurred_at") @db.Timestamptz
 
   @@map("workflow_events")
+}
+
+// Tarea 5. Los CHECK, índices parciales y triggers están en 105-ext-dynamic-forms.sql.
+model ExtFormDefinition {
+  id             String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  targetAudience String @map("target_audience") @db.VarChar(30)
+  stageNumber    Int @map("stage_number") @db.SmallInt
+  isActive       Boolean @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  versions       ExtFormVersion[]
+  instances      ExtFormInstance[]
+
+  @@unique([targetAudience, stageNumber], map: "ext_form_audience_stage_unique")
+  @@map("ext_form_definitions")
+}
+
+model ExtFormVersion {
+  id            String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  formId        String @map("form_id") @db.Uuid
+  form          ExtFormDefinition @relation(fields: [formId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  versionNumber Int @map("version_number")
+  title         String @db.VarChar(150)
+  description   String? @db.Text
+  status        String @default("draft") @db.VarChar(20)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  publishedAt   DateTime? @map("published_at") @db.Timestamptz
+  fields        ExtFormField[]
+  instances     ExtFormInstance[]
+
+  @@unique([formId, versionNumber], map: "ext_form_version_number_unique")
+  @@unique([id, formId], map: "ext_form_version_identity_unique")
+  @@map("ext_form_versions")
+}
+
+model ExtFormField {
+  id           String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  versionId    String @map("version_id") @db.Uuid
+  version      ExtFormVersion @relation(fields: [versionId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  fieldKey     String @map("field_key") @db.VarChar(80)
+  label        String @db.Text
+  fieldType    String @map("field_type") @db.VarChar(30)
+  isRequired   Boolean @default(false) @map("is_required")
+  options      Json @default("[]")
+  displayOrder Int @default(1) @map("display_order")
+  placeholder  String? @db.Text
+  helpText     String? @map("help_text") @db.Text
+  values       ExtSubmissionFieldValue[]
+
+  @@unique([versionId, fieldKey], map: "ext_field_key_unique")
+  @@unique([id, versionId], map: "ext_field_version_identity_unique")
+  @@index([versionId, displayOrder], map: "idx_ext_fields_order")
+  @@map("ext_form_fields")
+}
+
+model ExtFormInstance {
+  id           String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  submissionId String @map("submission_id") @db.Uuid
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  formId       String @map("form_id") @db.Uuid
+  form         ExtFormDefinition @relation(fields: [formId], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  versionId    String @map("version_id") @db.Uuid
+  version      ExtFormVersion @relation(fields: [versionId, formId], references: [id, formId], onDelete: Restrict, onUpdate: NoAction)
+  cycleNumber  Int @default(1) @map("cycle_number")
+  status       String @default("draft") @db.VarChar(20)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  submittedAt  DateTime? @map("submitted_at") @db.Timestamptz
+  values       ExtSubmissionFieldValue[]
+
+  @@unique([submissionId, formId, cycleNumber], map: "ext_instance_cycle_unique")
+  @@unique([id, versionId], map: "ext_instance_version_identity_unique")
+  @@index([versionId, formId], map: "idx_ext_instances_version")
+  @@map("ext_form_instances")
+}
+
+model ExtSubmissionFieldValue {
+  id          String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  instanceId  String @map("instance_id") @db.Uuid
+  versionId   String @map("version_id") @db.Uuid
+  instance    ExtFormInstance @relation(fields: [instanceId, versionId], references: [id, versionId], onDelete: Cascade, onUpdate: NoAction)
+  fieldId     String @map("field_id") @db.Uuid
+  field       ExtFormField @relation(fields: [fieldId, versionId], references: [id, versionId], onDelete: Restrict, onUpdate: NoAction)
+  fieldValue  Json @map("field_value")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  files       ExtFormResponseFile[]
+
+  @@unique([instanceId, fieldId], map: "ext_submission_field_unique")
+  @@index([fieldId, versionId], map: "idx_ext_values_field")
+  @@map("ext_submission_field_values")
+}
+
+model ExtFormResponseFile {
+  id           String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  fieldValueId String @map("field_value_id") @db.Uuid
+  fieldValue   ExtSubmissionFieldValue @relation(fields: [fieldValueId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  documentName String @map("document_name") @db.VarChar(255)
+  documentPath String @unique(map: "ext_form_response_files_document_path_key") @map("document_path") @db.Text
+  mimeType     String @map("mime_type") @db.VarChar(120)
+  sizeBytes    BigInt @map("size_bytes")
+  uploadedAt   DateTime @default(now()) @map("uploaded_at") @db.Timestamptz
+
+  @@index([fieldValueId], map: "idx_ext_response_files_value")
+  @@map("ext_form_response_files")
 }

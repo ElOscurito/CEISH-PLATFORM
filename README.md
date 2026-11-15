@@ -150,3 +150,7 @@ Las pantallas y rutas están centralizadas en `frontend/src/app/router/index.tsx
 - [Guía del sistema visual](docs/sistema-visual.md)
 - [Matriz de autenticación y autorización](docs/matriz-seguridad-auth.md)
 - [Flujo institucional de anexos](contexto/flujo-anexos-evaluacion.md)
+
+## Tarea 5: formularios dinámicos por etapas
+
+La [guía de entrega](docs/dynamic-forms-delivery.md) explica la migración 105, la configuración de NestJS y el uso por administrador, investigador y evaluador. Los [resultados de pruebas](docs/dynamic-forms-testing.md) detallan el alcance verificado y las limitaciones pendientes.

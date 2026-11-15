@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useReviewStore } from '../../../store/reviewStore';
 import { useAuthStore } from '../../../store/authStore';
 import { platformService } from '../../../shared/services/platformService';
@@ -6,6 +6,9 @@ import type { CriterionStatus } from '../../../features/evaluation/types/evaluat
 import type { EvaluationStats } from '../../../features/evaluation/types/evaluation.types';
 
 export function useReview(submissionId: string) {
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+  const operation = useRef(false);
   const currentUser = useAuthStore((s) => s.currentUser);
   const {
     review,
@@ -19,7 +22,9 @@ export function useReview(submissionId: string) {
 
   useEffect(() => {
     if (!currentUser) return;
-    platformService.getOrCreateReview(submissionId, currentUser.id).then(setReview);
+    let active = true;
+    platformService.getOrCreateReview(submissionId, currentUser.id).then(value => { if(active) setReview(value); }).catch(e => { if(active) setError((e as Error).message); });
+    return () => { active = false; };
   }, [submissionId, currentUser, setReview]);
 
   const currentStage = review ? review.stages[review.currentStageIndex] : null;
@@ -42,22 +47,25 @@ export function useReview(submissionId: string) {
       })()
     : null;
 
-  const handleAdvance = async () => {
-    advanceStage();
-    const updated = useReviewStore.getState().review;
-    if (updated) await platformService.saveReview(updated);
+  const persist = async (mutate?: () => void) => {
+    if(operation.current) return false;
+    operation.current=true;setBusy(true);setError('');
+    const previous=useReviewStore.getState().review;
+    try {
+      mutate?.();
+      const updated=useReviewStore.getState().review;
+      setReview(previous);
+      if(updated && previous) await platformService.saveReview(updated,previous.stages[previous.currentStageIndex].id);
+      setReview(await platformService.getReview(submissionId));
+      return true;
+    } catch(e) {
+      setReview(previous);setError((e as Error).message);
+      return false;
+    } finally {operation.current=false;setBusy(false);}
   };
-
-  const handleComplete = async (finalComment: string, grade: number) => {
-    completeReview(finalComment, grade);
-    const updated = useReviewStore.getState().review;
-    if (updated) await platformService.saveReview(updated);
-  };
-
-  const handleSave = async () => {
-    const current = useReviewStore.getState().review;
-    if (current) await platformService.saveReview(current);
-  };
+  const handleAdvance = () => persist(advanceStage);
+  const handleComplete = (comment:string,grade:number) => persist(() => completeReview(comment,grade));
+  const handleSave = () => persist();
 
   const updateStatus = (criterionId: string, status: CriterionStatus) => {
     if (!review) return;
@@ -75,6 +83,7 @@ export function useReview(submissionId: string) {
   };
 
   return {
+    error, busy,
     review,
     currentStage,
     stageStats,

@@ -89,13 +89,14 @@ const ADMIN_NAV: NavItem[] = [
       </svg>
     ),
   },
+  { to: '/admin/formularios', label: 'Formularios', icon: <span aria-hidden="true">▤</span> },
 ];
 
 const ROLE_NAV = { student: STUDENT_NAV, evaluator: EVALUATOR_NAV, admin: ADMIN_NAV };
 const ROLE_LABEL = { student: 'Investigador', evaluator: 'Estratificador CEISH', admin: 'Administrador' };
 
 export function AppShell() {
-  const { currentUser, logout } = useAuthStore();
+  const { currentUser, isRestored, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -104,6 +105,8 @@ export function AppShell() {
     logout();
     navigate('/login', { replace: true });
   };
+
+  if (!isRestored) return <p role="status">Restaurando sesión…</p>;
 
   if (!currentUser) {
     return <Navigate to="/login" replace />;

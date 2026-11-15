@@ -1,4 +1,13 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  bindStageForms,
+  requireStageForms,
+} from "../extensions/dynamic-forms/dynamic-forms.workflow";
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
 
 const STAGE_TEMPLATE = [
@@ -36,6 +45,7 @@ const STAGE_TEMPLATE = [
 ];
 
 export interface SaveReviewInput {
+  expectedStageId: string;
   submissionId: string;
   comment?: string;
   grade?: number;
@@ -117,6 +127,21 @@ export class ReviewsService {
     if (rev) return rev;
 
     await this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM submissions WHERE id=${submissionId}::uuid FOR UPDATE`;
+      const sub = await tx.submission.findUnique({
+        where: { id: submissionId },
+        include: { qualificationCase: true },
+      });
+      if (!sub) throw new NotFoundException("Investigación inexistente");
+      if (
+        sub.status === "reviewed" ||
+        sub.classificationStatus === "cancelled" ||
+        ["approved", "cancelled", "expired"].includes(
+          sub.qualificationCase?.status ?? "",
+        )
+      )
+        throw new ConflictException("Investigación cerrada");
+      if (await tx.review.findUnique({ where: { submissionId } })) return;
       const createdReview = await tx.review.create({
         data: {
           submissionId,
@@ -150,6 +175,10 @@ export class ReviewsService {
         }
       }
 
+      const firstStage = await tx.reviewStage.findFirstOrThrow({
+        where: { reviewId: createdReview.id, stageNumber: 1 },
+      });
+      await bindStageForms(tx, submissionId, firstStage.id, 1);
       await tx.submission.update({
         where: { id: submissionId },
         data: { status: "submitted" },
@@ -160,79 +189,156 @@ export class ReviewsService {
   }
 
   async saveReview(input: SaveReviewInput) {
-    const review = await this.prisma.review.findUnique({
-      where: { submissionId: input.submissionId },
-    });
-    if (!review) throw new NotFoundException("Revisión no encontrada");
-
-    await this.prisma.$transaction(async (tx) => {
-      await tx.review.update({
-        where: { id: review.id },
-        data: {
-          comment: input.comment ?? undefined,
-          grade: input.grade !== undefined ? input.grade : undefined,
-          status: input.status ?? undefined,
+    if (!input || !Array.isArray(input.stages))
+      throw new BadRequestException("Etapas inválidas");
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM submissions WHERE id=${input.submissionId}::uuid FOR UPDATE`;
+      const review = await tx.review.findUnique({
+        where: { submissionId: input.submissionId },
+        include: {
+          submission: { include: { qualificationCase: true } },
+          stages: {
+            orderBy: { stageNumber: "asc" },
+            include: { criteria: true },
+          },
         },
       });
-
-      if (input.stages) {
-        for (const st of input.stages) {
-          await tx.reviewStage.update({
-            where: { id: st.id },
+      if (!review) throw new NotFoundException("Revisión inexistente");
+      if (
+        review.status === "completed" ||
+        review.submission.classificationStatus === "cancelled" ||
+        ["approved", "cancelled", "expired"].includes(
+          review.submission.qualificationCase?.status ?? "",
+        )
+      )
+        throw new ConflictException("Investigación cerrada");
+      const current = review.stages.find((s) => s.status === "in-progress");
+      if (!current) throw new ConflictException("No hay etapa activa");
+      if (input.expectedStageId !== current.id)
+        throw new ConflictException(
+          "La etapa cambió; recarga la revisión antes de guardar",
+        );
+      const patch = input.stages!.find((s) => s.id === current.id);
+      if (
+        !patch ||
+        input.stages!.length !== review.stages.length ||
+        new Set(input.stages!.map((s) => s.id)).size !== review.stages.length
+      )
+        throw new BadRequestException("Etapas incompletas o duplicadas");
+      const advance = patch.status === "completed";
+      const next = review.stages.find(
+        (s) => s.stageNumber === current.stageNumber + 1,
+      );
+      if (
+        !["in-progress", "completed"].includes(patch.status) ||
+        input.status !== (advance && !next ? "completed" : "in-progress")
+      )
+        throw new BadRequestException("Transición inválida");
+      for (const st of input.stages!) {
+        const stored = review.stages.find((s) => s.id === st.id);
+        const expected =
+          stored?.id === current.id
+            ? advance
+              ? "completed"
+              : "in-progress"
+            : stored?.id === next?.id && advance
+              ? "in-progress"
+              : stored?.status;
+        if (!stored || st.status !== expected)
+          throw new ConflictException(
+            "Las etapas cambiaron; recarga la revisión",
+          );
+      }
+      const criteria = patch.criteria ?? [];
+      if (
+        criteria.length !== current.criteria.length ||
+        new Set(criteria.map((c) => c.id)).size !== criteria.length
+      )
+        throw new BadRequestException("Criterios incompletos");
+      for (const cr of criteria) {
+        if (
+          !current.criteria.some((c) => c.id === cr.id) ||
+          !["pending", "approved", "rejected"].includes(cr.status) ||
+          (cr.comment !== undefined && typeof cr.comment !== "string") ||
+          (cr.pageNumber != null &&
+            (!Number.isInteger(cr.pageNumber) ||
+              cr.pageNumber < 1 ||
+              cr.pageNumber > 32767))
+        )
+          throw new BadRequestException("Criterio inválido");
+        if (advance && cr.status === "pending")
+          throw new ConflictException(
+            "Completa todos los criterios antes de avanzar",
+          );
+        await tx.criteriaEvaluation.update({
+          where: { id: cr.id },
+          data: { status: cr.status, comment: cr.comment ?? "" },
+        });
+        await tx.annotation.deleteMany({
+          where: { criteriaEvaluationId: cr.id },
+        });
+        if (cr.pageNumber != null)
+          await tx.annotation.create({
             data: {
-              status: st.status,
-              completedAt: st.status === "completed" ? new Date() : null,
+              criteriaEvaluationId: cr.id,
+              pageNumber: cr.pageNumber,
+              x: 0,
+              y: 0,
+              width: 0,
+              height: 0,
+              comment: cr.comment ?? "",
             },
           });
-
-          if (st.criteria) {
-            for (const cr of st.criteria) {
-              await tx.criteriaEvaluation.update({
-                where: { id: cr.id },
-                data: {
-                  status: cr.status,
-                  comment: cr.comment ?? undefined,
-                },
-              });
-
-              if (
-                cr.pageNumber !== undefined &&
-                cr.pageNumber !== null &&
-                cr.pageNumber >= 1
-              ) {
-                await tx.annotation.deleteMany({
-                  where: { criteriaEvaluationId: cr.id },
-                });
-                await tx.annotation.create({
-                  data: {
-                    criteriaEvaluationId: cr.id,
-                    pageNumber: cr.pageNumber,
-                    x: 0,
-                    y: 0,
-                    width: 0,
-                    height: 0,
-                    comment: cr.comment ?? "",
-                  },
-                });
-              }
-            }
-          }
+      }
+      if (advance) {
+        await requireStageForms(tx, input.submissionId, current.stageNumber);
+        await tx.reviewStage.update({
+          where: { id: current.id },
+          data: { status: "completed", completedAt: new Date() },
+        });
+        if (next) {
+          await tx.reviewStage.update({
+            where: { id: next.id },
+            data: { status: "in-progress" },
+          });
+          await bindStageForms(
+            tx,
+            input.submissionId,
+            next.id,
+            next.stageNumber,
+          );
+        } else {
+          if (
+            typeof input.grade !== "number" ||
+            !Number.isFinite(input.grade) ||
+            input.grade < 0 ||
+            input.grade > 10 ||
+            typeof input.comment !== "string" ||
+            !input.comment.trim()
+          )
+            throw new BadRequestException(
+              "Calificación o comentario inválidos",
+            );
+          await tx.review.update({
+            where: { id: review.id },
+            data: {
+              status: "completed",
+              grade: input.grade,
+              comment: input.comment,
+            },
+          });
+          await tx.submission.update({
+            where: { id: input.submissionId },
+            data: {
+              status: "reviewed",
+              reviewedAt: new Date(),
+              grade: input.grade,
+              finalComment: input.comment,
+            },
+          });
         }
       }
-
-      if (input.status === "completed") {
-        await tx.submission.update({
-          where: { id: input.submissionId },
-          data: {
-            status: "reviewed",
-            reviewedAt: new Date(),
-            grade: input.grade ?? undefined,
-            finalComment: input.comment ?? undefined,
-          },
-        });
-      }
+      return { ok: true };
     });
-
-    return { ok: true };
   }
 }

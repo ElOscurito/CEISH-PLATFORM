@@ -168,14 +168,15 @@ function toSaveReviewPayload(review: Review) {
     comment: review.finalComment ?? '',
     grade: review.grade ?? null,
     stages: review.stages.map((s) => ({
-      stageNumber: s.order,
+      id: s.id,
+      stage_number: s.order,
       status: s.status,
       completedAt: s.status === 'completed' ? new Date().toISOString() : null,
       criteria: s.criteria.map((c) => ({
         id: c.id,
         status: c.status,
         comment: c.observation ?? '',
-        pageReference: c.pageReference ?? null,
+        pageNumber: c.pageReference ?? null,
       })),
     })),
   };
@@ -271,12 +272,13 @@ export const platformService = {
   },
 
   // Reviews
+  async getReview(submissionId: string): Promise<Review> { return mapReview(await apiGet<ReviewDTO>(`/api/reviews/${submissionId}`)); },
   async getOrCreateReview(submissionId: string, evaluatorId: string): Promise<Review> {
     const data = await apiSend<ReviewDTO>('POST', '/api/reviews', { submissionId, evaluatorId });
     return mapReview(data);
   },
 
-  async saveReview(review: Review): Promise<void> {
-    await apiSend('PUT', `/api/reviews/${review.id}`, toSaveReviewPayload(review));
+  async saveReview(review: Review, expectedStageId: string): Promise<void> {
+    await apiSend('PUT', `/api/reviews/${review.id}`, { ...toSaveReviewPayload(review), expectedStageId });
   },
 };

@@ -1,3 +1,4 @@
+import { DynamicFormsModule } from "./modules/extensions/dynamic-forms/dynamic-forms.module";
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { PrismaModule } from "./common/prisma/prisma.module";
@@ -29,6 +30,7 @@ import { ReviewsModule } from "./modules/reviews/reviews.module";
     AnnexesModule,
     AdminModule,
     ReviewsModule,
+    DynamicFormsModule,
   ],
 })
 export class AppModule {}

@@ -1,8 +1,11 @@
+import type { ReactNode } from 'react';
 import { useRef, useState } from 'react';
 import { MAX_MB, validateResearchDocument } from '../../../services/storage';
 
 interface Props {
-  onConfirm: (files: File[], title: string, comment: string) => void;
+  onConfirm: (files: File[], title: string, comment: string) => void | Promise<void>;
+  additionalContent?: ReactNode;
+  blocked?: boolean;
   onCancel: () => void;
   initialTitle?: string;
   initialComment?: string;
@@ -27,7 +30,11 @@ export function UploadModal({
   initialTitle = '',
   initialComment = '',
   mode = 'create',
+  additionalContent,
+  blocked = false,
 }: Props) {
+  const [busy, setBusy] = useState(false);
+  const submitting = useRef(false);
   const [files, setFiles] = useState<File[]>([]);
   const [title, setTitle] = useState(initialTitle);
   const [comment, setComment] = useState(initialComment);
@@ -64,16 +71,21 @@ export function UploadModal({
     setFiles((current) => current.filter((file) => fileKey(file) !== key));
   };
 
-  const canConfirm = files.length > 0 && title.trim().length > 0;
+  const confirm = async () => {
+    if(submitting.current) return;
+    submitting.current=true; setBusy(true); setError(null);
+    try { await onConfirm(files,title.trim(),comment.trim()); } catch(e) { setError((e as Error).message); } finally { submitting.current=false; setBusy(false); }
+  };
+  const canConfirm = !busy && !blocked && files.length > 0 && title.trim().length > 0;
 
   return (
-    <div className="modal-backdrop" onClick={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="research-upload-title">
+    <div className="modal-backdrop" onClick={(event) => { if (event.target === event.currentTarget) if(!busy) onCancel(); }}>
+      <div className="modal research-upload-modal" role="dialog" aria-modal="true" aria-labelledby="research-upload-title">
         <div className="modal__header">
           <h2 className="modal__title" id="research-upload-title">
             {mode === 'edit' ? 'Reemplazar documentos' : 'Enviar investigación'}
           </h2>
-          <button className="modal__close" onClick={onCancel} aria-label="Cerrar" type="button">
+          <button className="modal__close" disabled={busy} onClick={onCancel} aria-label="Cerrar" type="button">
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
               <path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
@@ -81,6 +93,7 @@ export function UploadModal({
         </div>
 
         <div className="modal__body">
+          <fieldset disabled={busy} style={{border:0,padding:0,margin:0,minWidth:0}}>
           <div className="modal__field">
             <label className="modal__label" htmlFor="research-title">Título de la investigación</label>
             <input
@@ -148,13 +161,15 @@ export function UploadModal({
               rows={3}
             />
           </div>
+          {additionalContent}
+          </fieldset>
         </div>
 
         <div className="modal__footer">
-          <button className="eval-btn eval-btn--outline" onClick={onCancel} type="button">Cancelar</button>
+          <button className="eval-btn eval-btn--outline" disabled={busy} onClick={onCancel} type="button">Cancelar</button>
           <button
             className="eval-btn eval-btn--primary"
-            onClick={() => onConfirm(files, title.trim(), comment.trim())}
+            onClick={() => void confirm()}
             disabled={!canConfirm}
             type="button"
           >

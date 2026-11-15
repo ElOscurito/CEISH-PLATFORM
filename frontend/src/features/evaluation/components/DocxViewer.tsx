@@ -7,14 +7,16 @@ interface Props {
 }
 
 export function DocxViewer({ url }: Props) {
+  return <DocumentPreview key={url} url={url} />;
+}
+
+function DocumentPreview({ url }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError(false);
 
     if (containerRef.current) {
         containerRef.current.innerHTML = '';

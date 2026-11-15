@@ -1,4 +1,8 @@
 import {
+  bindInitialForm,
+  InitialFormData,
+} from "../extensions/dynamic-forms/dynamic-forms.workflow";
+import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
@@ -153,7 +157,10 @@ export class SubmissionsService {
     return this.mapSubmission(sub);
   }
 
-  async createSubmission(input: CreateSubmissionDto) {
+  async createSubmission(
+    input: CreateSubmissionDto,
+    initial?: InitialFormData,
+  ) {
     const primaryDocument = input.documents[0];
     if (!primaryDocument) {
       throw new BadRequestException("Se requiere al menos un documento");
@@ -189,6 +196,8 @@ export class SubmissionsService {
             "No se pudo generar un código CEISH único",
           );
         }
+
+        await bindInitialForm(tx, createdSubmission.id, initial);
 
         // Guardar todos los documentos
         for (const doc of input.documents) {
