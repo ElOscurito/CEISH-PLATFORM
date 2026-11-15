@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { workflowService, type RegistrationRequestItem } from '../../../services/workflowService';
+import { externalResearcherService } from '../../../services/externalResearcherService';
 import '../admin.css';
+import '../../extensions/external-researchers/externalResearchers.css';
 
 const STATUS_LABEL = {
   pending: 'Pendiente',
@@ -15,12 +18,17 @@ export function RegistrationRequestsPanel() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [type, setType] = useState<'all' | 'internal' | 'external'>('all');
+  // Solicitudes externas con expediente (Tarea 4): se dictaminan desde el expediente.
+  const [dossierRequestIds, setDossierRequestIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     void workflowService.getRegistrationRequests()
       .then(setRequests)
       .catch((cause: Error) => setError(cause.message))
       .finally(() => setLoading(false));
+    void externalResearcherService.listDossiers()
+      .then((dossiers) => setDossierRequestIds(new Set(dossiers.map((dossier) => dossier.registration_request_id))))
+      .catch(() => setDossierRequestIds(new Set()));
   }, []);
 
   const review = async (id: string, decision: 'approved' | 'rejected') => {
@@ -76,12 +84,20 @@ export function RegistrationRequestsPanel() {
                 <div className="request-card__details">
                   <span>{request.researcher_type === 'internal' ? 'Investigador interno' : 'Investigador externo'}</span>
                   {request.affiliation && <span>{request.affiliation}</span>}
+                  {dossierRequestIds.has(request.id) && <span className="ext-request-tag">Con expediente de admisión</span>}
                   <span>{new Date(request.created_at).toLocaleDateString('es-EC')}</span>
                 </div>
                 <span className={`badge request-card__status request-card__status--${request.status}`}>
                   {STATUS_LABEL[request.status]}
                 </span>
-                {request.status === 'pending' && (
+                {request.status === 'pending' && dossierRequestIds.has(request.id) && (
+                  <div className="request-card__actions">
+                    <Link className="eval-btn eval-btn--primary" to={`/admin/expedientes-externos?solicitud=${request.id}`}>
+                      Revisar expediente
+                    </Link>
+                  </div>
+                )}
+                {request.status === 'pending' && !dossierRequestIds.has(request.id) && (
                   <div className="request-card__actions">
                     <button
                       className="eval-btn eval-btn--danger-outline"

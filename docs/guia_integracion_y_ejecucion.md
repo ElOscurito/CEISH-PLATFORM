@@ -17,6 +17,7 @@ Las principales rutas de dominio son:
 | `/api/qualifications/*` | `qualification` | Evaluador asignado o investigador dueño |
 | `/api/reviews/*` | `reviews` | Evaluador asignado y propietario de revisión |
 | `/api/annexes/*`, `/api/assignments/*`, `/api/admin/*` | `annexes`, `admin` | Por rol y pertenencia al flujo |
+| `/api/extensions/auth/register-external`, `/api/extensions/admin/external-dossiers/*` | `extensions/external-researchers` | Registro externo público; expedientes solo admin ([Tarea 4](tarea-4-investigadores-externos.md)) |
 
 NestJS normaliza errores como JSON. El cliente HTTP compartido prioriza el mensaje de validación y conserva el contrato legible por las pantallas. Para cambios de respuesta o rutas, actualiza ambos lados en una misma rama y registra el cambio aquí.
 

@@ -6,6 +6,7 @@ import Button from '../../shared/components/common/Button';
 import Card from '../../shared/components/common/Card';
 import Input from '../../shared/components/common/Input';
 import './LoginForm.css';
+import '../extensions/external-researchers/externalResearchers.css';
 
 interface RegistrationFormProps {
   onSubmit: (request: RegistrationRequest) => Promise<RegistrationResult>;
@@ -19,7 +20,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSubmit }) => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [researcherType, setResearcherType] = useState<ResearcherType>('internal');
-  const [affiliation, setAffiliation] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +29,10 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSubmit }) => {
     setError(null);
     setSuccess(null);
 
-    if (!name.trim() || !email.trim() || !password || !confirmPassword || (researcherType === 'external' && !affiliation.trim())) {
+    // Los investigadores externos se registran en /registro-externo (Tarea 4).
+    if (researcherType === 'external') return;
+
+    if (!name.trim() || !email.trim() || !password || !confirmPassword) {
       setError('Completa todos los campos requeridos.');
       return;
     }
@@ -52,7 +55,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSubmit }) => {
       email: email.trim().toLowerCase(),
       password,
       researcherType,
-      affiliation: affiliation.trim(),
+      affiliation: '',
     });
     setIsLoading(false);
 
@@ -91,23 +94,23 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSubmit }) => {
           </div>
         </fieldset>
 
-        {researcherType === 'external' && (
-          <Input
-            label="Institución de procedencia"
-            name="affiliation"
-            value={affiliation}
-            onChange={(event) => setAffiliation(event.target.value)}
-            required
-            disabled={isLoading}
-            autoComplete="organization"
-          />
-        )}
+        {researcherType === 'external' ? (
+          <div className="ext-register-note" role="note">
+            <p>
+              Los investigadores externos a la ULEAM deben completar un proceso de admisión con su filiación, la carta de aval institucional y la información del convenio.
+            </p>
+            <Link to="/registro-externo" className="login-form__footer-link" style={{ color: colors.primary[500], fontWeight: 700 }}>
+              Continuar al registro de investigador externo →
+            </Link>
+          </div>
+        ) : (<>
         <Input label="Contraseña" type="password" name="password" value={password} onChange={(event) => setPassword(event.target.value)} required disabled={isLoading} autoComplete="new-password" />
         <Input label="Confirmar contraseña" type="password" name="confirmPassword" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required disabled={isLoading} autoComplete="new-password" />
 
         <Button type="submit" variant="primary" size="sm" fullWidth isLoading={isLoading} disabled={isLoading} className="login-form__submit">
           {isLoading ? 'Enviando…' : 'Enviar solicitud'}
         </Button>
+        </>)}
       </form>
 
       <div className="login-form__footer" style={{ borderTop: `1px solid ${colors.border}`, color: colors.gray[500], fontSize: typography.fontSize.xs }}>

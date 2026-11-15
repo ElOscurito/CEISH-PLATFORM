@@ -14,6 +14,8 @@ import { ResearchManagementPanel } from '../../features/admin/components/Researc
 import { ResearchDetailPage } from '../../features/admin/components/ResearchDetailPage';
 import { StratificationDashboard } from '../../features/evaluator/StratificationDashboard';
 import { QualificationDashboard } from '../../features/evaluator/QualificationDashboard';
+import { ExternalRegistrationPage } from '../../features/extensions/external-researchers/ExternalRegistrationPage';
+import { ExternalDossiersPanel } from '../../features/extensions/external-researchers/ExternalDossiersPanel';
 
 function RootRedirect() {
   const currentUser = useAuthStore((s) => s.currentUser);
@@ -41,6 +43,7 @@ export function AppRouter() {
         {/* Auth */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/registro" element={<RegistrationPage />} />
+        <Route path="/registro-externo" element={<ExternalRegistrationPage />} />
 
         {/* Full-screen evaluation routes (existing + review) */}
         <Route path="/evaluacion" element={<RequireRole role="evaluator"><EvaluationPage /></RequireRole>} />
@@ -55,6 +58,7 @@ export function AppRouter() {
           <Route path="/evaluador/calificacion" element={<RequireRole role="evaluator"><QualificationDashboard /></RequireRole>} />
           <Route path="/admin" element={<RequireRole role="admin"><AdminDashboard /></RequireRole>} />
           <Route path="/admin/solicitudes" element={<RequireRole role="admin"><RegistrationRequestsPanel /></RequireRole>} />
+          <Route path="/admin/expedientes-externos" element={<RequireRole role="admin"><ExternalDossiersPanel /></RequireRole>} />
           <Route path="/admin/investigaciones" element={<RequireRole role="admin"><ResearchManagementPanel /></RequireRole>} />
           <Route path="/admin/investigaciones/:submissionId" element={<RequireRole role="admin"><ResearchDetailPage /></RequireRole>} />
         </Route>

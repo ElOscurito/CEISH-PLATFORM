@@ -80,6 +80,16 @@ const ADMIN_NAV: NavItem[] = [
     ),
   },
   {
+    to: '/admin/expedientes-externos',
+    label: 'Externos',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+        <circle cx="9" cy="9" r="6.5" stroke="currentColor" strokeWidth="1.5" />
+        <path d="M2.5 9h13M9 2.5c1.8 1.8 2.6 4 2.6 6.5S10.8 13.7 9 15.5M9 2.5C7.2 4.3 6.4 6.5 6.4 9s.8 4.7 2.6 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
     to: '/admin/investigaciones',
     label: 'Investigaciones',
     icon: (

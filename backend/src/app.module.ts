@@ -11,6 +11,7 @@ import { QualificationsModule } from "./modules/qualification/qualifications.mod
 import { AnnexesModule } from "./modules/annexes/annexes.module";
 import { AdminModule } from "./modules/admin/admin.module";
 import { ReviewsModule } from "./modules/reviews/reviews.module";
+import { ExternalResearchersModule } from "./modules/extensions/external-researchers/external-researchers.module";
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ReviewsModule } from "./modules/reviews/reviews.module";
     AnnexesModule,
     AdminModule,
     ReviewsModule,
+    ExternalResearchersModule,
   ],
 })
 export class AppModule {}

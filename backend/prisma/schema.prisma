@@ -280,3 +280,27 @@ model WorkflowEvent {
 
   @@map("workflow_events")
 }
+
+// Vinculación · Tarea 4. Sin @relation para no modificar los modelos troncales;
+// las llaves foráneas existen en PostgreSQL (migración 104).
+model ExtExternalResearcherDossier {
+  id                    String    @id @default(uuid()) @db.Uuid
+  registrationRequestId String    @unique @map("registration_request_id") @db.Uuid
+  userId                String?   @map("user_id") @db.Uuid
+  homeInstitution       String    @map("home_institution") @db.VarChar(200)
+  institutionCountry    String    @map("institution_country") @db.VarChar(100)
+  positionRole          String    @map("position_role") @db.VarChar(120)
+  hasUleamAgreement     Boolean   @default(false) @map("has_uleam_agreement")
+  agreementCodeOrName   String?   @map("agreement_code_or_name") @db.VarChar(200)
+  verifiedAgreementCodeOrName String? @map("verified_agreement_code_or_name") @db.VarChar(200)
+  endorsementLetterName String    @map("endorsement_letter_name") @db.VarChar(255)
+  endorsementLetterPath String    @map("endorsement_letter_path")
+  verificationStatus    String    @default("under_review") @map("verification_status") @db.VarChar(30)
+  adminNotes            String?   @map("admin_notes")
+  verifiedBy            String?   @map("verified_by") @db.Uuid
+  verifiedAt            DateTime? @map("verified_at") @db.Timestamptz
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([verificationStatus, createdAt(sort: Desc)], map: "idx_ext_dossiers_status")
+  @@map("ext_external_researcher_dossiers")
+}
