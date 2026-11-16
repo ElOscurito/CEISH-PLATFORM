@@ -13,14 +13,14 @@ export function DocxViewer({ url }: Props) {
 
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError(false);
 
     if (containerRef.current) {
         containerRef.current.innerHTML = '';
     }
 
     const loadDoc = async () => {
+      setLoading(true);
+      setError(false);
       try {
         const res = await apiFetch(url);
         if (!res.ok) throw new Error('Network response was not ok');
