@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { Annex2Schedule, Annex2ScheduleItem } from '../../../shared/types/platform.types';
 
 interface Props {
@@ -8,6 +9,11 @@ interface Props {
 const uid = () => crypto.randomUUID();
 
 export function Annex2ScheduleEditor({ value, onChange }: Props) {
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const orderedItems = value.items.filter((item) => item.type === 'objective').flatMap((parent) => [
+    parent, ...value.items.filter((item) => item.parentId === parent.id),
+  ]);
+  const visibleItems = orderedItems.filter((item) => !item.parentId || !collapsed.has(item.parentId));
   const update = (id: string, patch: Partial<Annex2ScheduleItem>) => {
     const items = value.items.map((item) => item.id === id ? { ...item, ...patch } : item);
     const parent = items.find((item) => item.id === id && item.type === 'objective');
@@ -34,10 +40,14 @@ export function Annex2ScheduleEditor({ value, onChange }: Props) {
 
   const addActivity = (parent: Annex2ScheduleItem) => {
     const count = value.items.filter((item) => item.parentId === parent.id).length + 1;
-    onChange({ items: [...value.items, {
+    const insertAt = orderedItems.findIndex((item) => item.id === parent.id) + count;
+    const items = [...orderedItems];
+    items.splice(insertAt, 0, {
       id: uid(), parentId: parent.id, type: 'activity', label: `Actividad ${count}`,
       startMonth: parent.startMonth, durationMonths: 1,
-    }] });
+    });
+    setCollapsed((current) => { const next = new Set(current); next.delete(parent.id); return next; });
+    onChange({ items });
   };
 
   const remove = (id: string) => onChange({
@@ -57,17 +67,24 @@ export function Annex2ScheduleEditor({ value, onChange }: Props) {
         <div className="annex2-timeline__scale" aria-hidden="true">
           <span>Actividad</span>{Array.from({ length: 36 }, (_, i) => <small key={i}>{i + 1}</small>)}
         </div>
-        {value.items.map((item) => {
+        {visibleItems.map((item) => {
           const parent = item.parentId ? value.items.find((candidate) => candidate.id === item.parentId) : null;
           const min = parent?.startMonth ?? 1;
           const max = parent ? parent.startMonth + parent.durationMonths - item.durationMonths : 37 - item.durationMonths;
           return (
             <div className={`annex2-row annex2-row--${item.type}`} key={item.id}>
               <div className="annex2-row__fields">
-                <input aria-label="Nombre" value={item.label} onChange={(e) => update(item.id, { label: e.target.value })} />
+                <textarea rows={2} aria-label={item.type === 'objective' ? 'Nombre del objetivo' : 'Nombre de la subactividad'} value={item.label} onChange={(e) => update(item.id, { label: e.target.value })} />
                 <label>Inicio <input type="number" min={min} max={Math.max(min, max)} value={item.startMonth} onChange={(e) => update(item.id, { startMonth: Number(e.target.value) })} /></label>
                 <label>Meses <input type="number" min="1" max={parent ? parent.startMonth + parent.durationMonths - item.startMonth : 37 - item.startMonth} value={item.durationMonths} onChange={(e) => update(item.id, { durationMonths: Number(e.target.value) })} /></label>
                 {item.type === 'objective' && <button type="button" onClick={() => addActivity(item)}>+ Subactividad</button>}
+                {item.type === 'objective' && value.items.some((child) => child.parentId === item.id) && (
+                  <button type="button" aria-expanded={!collapsed.has(item.id)} aria-label={`Subactividades de ${item.label}`} onClick={() => setCollapsed((current) => {
+                    const next = new Set(current);
+                    if (next.has(item.id)) next.delete(item.id); else next.add(item.id);
+                    return next;
+                  })}>{collapsed.has(item.id) ? 'Mostrar' : 'Ocultar'} subactividades</button>
+                )}
                 <button type="button" aria-label={`Eliminar ${item.label}`} onClick={() => remove(item.id)}>×</button>
               </div>
               <div className="annex2-row__track">
