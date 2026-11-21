@@ -28,6 +28,7 @@ class CreateSubmissionBodyDto {
     mimeType: string;
     sizeBytes: number;
   }>;
+  annex2Schedule?: unknown;
 }
 
 @Controller("submissions")
@@ -79,7 +80,23 @@ export class SubmissionsController {
       title: body.title,
       comment: body.comment,
       documents: body.documents,
+      annex2Schedule: body.annex2Schedule,
     });
+  }
+
+  @Get(":id/annex-2-schedule")
+  async getAnnex2Schedule(@Param("id") id: string, @CurrentUser() user: SessionUser) {
+    return this.submissionsService.getAnnex2Schedule(id, user.id, user.role);
+  }
+
+  @Patch(":id/annex-2-schedule")
+  @Roles("student")
+  async updateAnnex2Schedule(
+    @Param("id") id: string,
+    @CurrentUser() user: SessionUser,
+    @Body() body: { schedule: unknown },
+  ) {
+    return this.submissionsService.updateAnnex2Schedule(id, user.id, body.schedule);
   }
 
   @Get(":id")

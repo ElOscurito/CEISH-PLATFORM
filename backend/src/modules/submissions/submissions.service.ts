@@ -7,6 +7,7 @@ import {
 } from "@nestjs/common";
 import { randomInt } from "node:crypto";
 import { PrismaService } from "../../common/prisma/prisma.service";
+import { normalizeAnnex2Schedule } from "../../common/annexes/annex2-schedule";
 
 export interface CreateSubmissionDto {
   studentId: string;
@@ -18,6 +19,7 @@ export interface CreateSubmissionDto {
     mimeType: string;
     sizeBytes: number;
   }>;
+  annex2Schedule?: unknown;
 }
 
 export interface UpdateSubmissionDto {
@@ -43,6 +45,7 @@ export class SubmissionsService {
     const activeAnnex11 = sub.annexes?.find(
       (a: any) => a.annexNumber === 11 && a.status !== "voided",
     );
+    const annex2 = sub.annexes?.find((a: any) => a.annexNumber === 2 && a.status === "completed");
 
     return {
       id: sub.id,
@@ -76,6 +79,9 @@ export class SubmissionsService {
         uploaded_at: d.uploadedAt,
       })),
       annex_11_status: activeAnnex11?.status ?? null,
+      annex_2_schedule: sub.annex2Schedule ?? { items: [] },
+      annex_2_id: annex2?.id ?? null,
+      annex_2_status: annex2?.status ?? "draft",
     };
   }
 
@@ -85,7 +91,7 @@ export class SubmissionsService {
         student: true,
         documents: { orderBy: [{ uploadedAt: "asc" }, { id: "asc" }] },
         qualificationCase: { include: { cycles: true } },
-        annexes: { where: { annexNumber: 11, status: { not: "voided" } } },
+        annexes: { where: { annexNumber: { in: [2, 11] }, status: { not: "voided" } }, orderBy: { createdAt: "desc" } },
       },
       orderBy: { submittedAt: "desc" },
     });
@@ -100,7 +106,7 @@ export class SubmissionsService {
           student: true,
           documents: { orderBy: [{ uploadedAt: "asc" }, { id: "asc" }] },
           qualificationCase: { include: { cycles: true } },
-          annexes: { where: { annexNumber: 11, status: { not: "voided" } } },
+          annexes: { where: { annexNumber: { in: [2, 11] }, status: { not: "voided" } }, orderBy: { createdAt: "desc" } },
         },
         orderBy: { submittedAt: "desc" },
       });
@@ -113,7 +119,7 @@ export class SubmissionsService {
         student: true,
         documents: { orderBy: [{ uploadedAt: "asc" }, { id: "asc" }] },
         qualificationCase: { include: { cycles: true } },
-        annexes: { where: { annexNumber: 11, status: { not: "voided" } } },
+        annexes: { where: { annexNumber: { in: [2, 11] }, status: { not: "voided" } }, orderBy: { createdAt: "desc" } },
       },
       orderBy: { submittedAt: "desc" },
     });
@@ -133,7 +139,7 @@ export class SubmissionsService {
         student: true,
         documents: { orderBy: [{ uploadedAt: "asc" }, { id: "asc" }] },
         qualificationCase: { include: { cycles: true } },
-        annexes: { where: { annexNumber: 11, status: { not: "voided" } } },
+        annexes: { where: { annexNumber: { in: [2, 11] }, status: { not: "voided" } }, orderBy: { createdAt: "desc" } },
       },
       orderBy: { submittedAt: "desc" },
     });
@@ -147,7 +153,7 @@ export class SubmissionsService {
         student: true,
         documents: { orderBy: [{ uploadedAt: "asc" }, { id: "asc" }] },
         qualificationCase: { include: { cycles: true } },
-        annexes: { where: { annexNumber: 11, status: { not: "voided" } } },
+        annexes: { where: { annexNumber: { in: [2, 11] }, status: { not: "voided" } }, orderBy: { createdAt: "desc" } },
       },
     });
     return this.mapSubmission(sub);
@@ -157,6 +163,10 @@ export class SubmissionsService {
     const primaryDocument = input.documents[0];
     if (!primaryDocument) {
       throw new BadRequestException("Se requiere al menos un documento");
+    }
+    const annex2Schedule = normalizeAnnex2Schedule(input.annex2Schedule);
+    if (!annex2Schedule.items.some((item) => item.type === "objective")) {
+      throw new BadRequestException("Registra al menos un objetivo en el cronograma del Anexo 2");
     }
 
     return this.prisma
@@ -178,6 +188,7 @@ export class SubmissionsService {
                 comment: input.comment ?? "",
                 status: "submitted",
                 classificationStatus: "awaiting-assignment",
+                annex2Schedule: annex2Schedule as any,
               },
             });
             break;
@@ -327,6 +338,39 @@ export class SubmissionsService {
     });
 
     return this.getSubmissionById(id);
+  }
+
+  async getAnnex2Schedule(id: string, userId: string, role: string) {
+    if (!(await this.canAccessSubmission(userId, role, id))) {
+      throw new ForbiddenException("No puedes consultar este cronograma");
+    }
+    const submission = await this.prisma.submission.findUnique({
+      where: { id },
+      include: { annexes: { where: { annexNumber: 2, status: "completed" }, orderBy: { createdAt: "desc" }, take: 1 } },
+    });
+    if (!submission) throw new NotFoundException("Investigación no encontrada");
+    return {
+      schedule: submission.annex2Schedule,
+      editable: role === "student" && !submission.annexes.length,
+      annexId: submission.annexes[0]?.id ?? null,
+      approvedSchedule: submission.annexes[0]?.data ?? null,
+    };
+  }
+
+  async updateAnnex2Schedule(id: string, userId: string, raw: unknown) {
+    const submission = await this.prisma.submission.findUnique({
+      where: { id },
+      include: { annexes: { where: { annexNumber: 2, status: "completed" }, take: 1 } },
+    });
+    if (!submission || submission.studentId !== userId) {
+      throw new NotFoundException("Investigación no encontrada");
+    }
+    if (submission.annexes.length || submission.classificationStatus === "cancelled") {
+      throw new ConflictException("El cronograma aprobado ya no puede modificarse");
+    }
+    const schedule = normalizeAnnex2Schedule(raw);
+    await this.prisma.submission.update({ where: { id }, data: { annex2Schedule: schedule as any } });
+    return { schedule, editable: true, annexId: null, approvedSchedule: null };
   }
 
   async deleteSubmission(id: string, userId: string) {

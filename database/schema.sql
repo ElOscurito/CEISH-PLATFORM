@@ -84,7 +84,8 @@ CREATE TABLE submissions (
                   )),
   risk_level VARCHAR(30)
                   CHECK (risk_level IN ('no-risk', 'minimal-risk', 'greater-than-minimal')),
-  classified_at TIMESTAMPTZ
+  classified_at TIMESTAMPTZ,
+  annex_2_schedule JSONB NOT NULL DEFAULT '{"items":[]}'::jsonb
 );
 
 CREATE INDEX idx_submissions_student ON submissions(student_id);

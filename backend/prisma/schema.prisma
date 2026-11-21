@@ -83,6 +83,7 @@ model Submission {
   classificationStatus  String                     @default("awaiting-assignment") @map("classification_status") @db.VarChar(30)
   riskLevel             String?                    @map("risk_level") @db.VarChar(30)
   classifiedAt          DateTime?                  @map("classified_at") @db.Timestamptz
+  annex2Schedule        Json                       @default("{\"items\":[]}") @map("annex_2_schedule")
   documents             SubmissionDocument[]
   stratifications       StratificationAssignment[]
   annexes               ResearchAnnex[]
