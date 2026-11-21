@@ -11,7 +11,7 @@ interface Props {
 export function Annex2ScheduleModal({ initialSchedule, onConfirm, onCancel }: Props) {
   const [schedule, setSchedule] = useState(initialSchedule);
   return (
-    <div className="modal-backdrop" onClick={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
+    <div className="modal-backdrop">
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="annex2-modal-title">
         <div className="modal__header">
           <h2 className="modal__title" id="annex2-modal-title">Editar cronograma del Anexo 2</h2>

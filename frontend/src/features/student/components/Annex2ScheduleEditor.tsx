@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { Annex2Schedule, Annex2ScheduleItem } from '../../../shared/types/platform.types';
 
 interface Props {
@@ -10,17 +10,21 @@ const uid = () => crypto.randomUUID();
 
 export function Annex2ScheduleEditor({ value, onChange }: Props) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const drag = useRef<{ pointerId: number; id: string; x: number; start: number; cellWidth: number } | null>(null);
   const orderedItems = value.items.filter((item) => item.type === 'objective').flatMap((parent) => [
     parent, ...value.items.filter((item) => item.parentId === parent.id),
   ]);
   const visibleItems = orderedItems.filter((item) => !item.parentId || !collapsed.has(item.parentId));
   const update = (id: string, patch: Partial<Annex2ScheduleItem>) => {
-    const items = value.items.map((item) => item.id === id ? { ...item, ...patch } : item);
+    const previous = value.items.find((item) => item.id === id);
+    const shift = patch.startMonth !== undefined && previous ? patch.startMonth - previous.startMonth : 0;
+    const items = value.items.map((item) => item.id === id ? { ...item, ...patch } : { ...item });
     const parent = items.find((item) => item.id === id && item.type === 'objective');
     if (parent) {
       const end = parent.startMonth + parent.durationMonths - 1;
       for (const item of items) {
         if (item.parentId === parent.id) {
+          item.startMonth += shift;
           item.startMonth = Math.max(parent.startMonth, Math.min(item.startMonth, end));
           item.durationMonths = Math.max(1, Math.min(item.durationMonths, end - item.startMonth + 1));
         }
@@ -88,15 +92,45 @@ export function Annex2ScheduleEditor({ value, onChange }: Props) {
                 <button type="button" aria-label={`Eliminar ${item.label}`} onClick={() => remove(item.id)}>×</button>
               </div>
               <div className="annex2-row__track">
-                <div className="annex2-row__bar" style={{ gridColumn: `${item.startMonth} / span ${item.durationMonths}` }} title={`${item.durationMonths} meses`} />
-                <input
-                  className="annex2-row__slider"
-                  type="range"
+                <div
+                  className="annex2-row__bar"
+                  style={{ gridColumn: `${item.startMonth} / span ${item.durationMonths}` }}
+                  title={`${item.durationMonths} meses. Arrastra para mover.`}
+                  role="slider"
+                  tabIndex={0}
                   aria-label={`Mover ${item.label}`}
-                  min={min}
-                  max={Math.max(min, max)}
-                  value={item.startMonth}
-                  onChange={(event) => update(item.id, { startMonth: Number(event.target.value) })}
+                  aria-valuemin={min}
+                  aria-valuemax={Math.max(min, max)}
+                  aria-valuenow={item.startMonth}
+                  onContextMenu={(event) => event.preventDefault()}
+                  onPointerDown={(event) => {
+                    if (event.button !== 0 && event.button !== 2) return;
+                    event.preventDefault();
+                    const width = event.currentTarget.parentElement!.getBoundingClientRect().width;
+                    if (!width) return;
+                    drag.current = { pointerId: event.pointerId, id: item.id, x: event.clientX, start: item.startMonth, cellWidth: width / 36 };
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                    event.currentTarget.focus();
+                  }}
+                  onPointerMove={(event) => {
+                    const active = drag.current;
+                    if (!active || active.id !== item.id || active.pointerId !== event.pointerId) return;
+                    const offset = Math.round((event.clientX - active.x) / active.cellWidth);
+                    const startMonth = Math.max(min, Math.min(Math.max(min, max), active.start + offset));
+                    if (startMonth !== item.startMonth) update(item.id, { startMonth });
+                  }}
+                  onPointerUp={(event) => {
+                    drag.current = null;
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+                  }}
+                  onPointerCancel={() => { drag.current = null; }}
+                  onLostPointerCapture={() => { drag.current = null; }}
+                  onKeyDown={(event) => {
+                    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                    event.preventDefault();
+                    const next = event.key === 'Home' ? min : event.key === 'End' ? max : item.startMonth + (event.key === 'ArrowRight' ? 1 : -1);
+                    update(item.id, { startMonth: Math.max(min, Math.min(Math.max(min, max), next)) });
+                  }}
                 />
               </div>
             </div>

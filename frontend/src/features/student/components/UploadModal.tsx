@@ -72,7 +72,7 @@ export function UploadModal({
   const canConfirm = files.length > 0 && title.trim().length > 0 && schedule.items.some((item) => item.type === 'objective');
 
   return (
-    <div className="modal-backdrop" onClick={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
+    <div className="modal-backdrop">
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="research-upload-title">
         <div className="modal__header">
           <h2 className="modal__title" id="research-upload-title">
