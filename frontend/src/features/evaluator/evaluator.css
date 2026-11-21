@@ -328,6 +328,14 @@
 .qualification-card__observations textarea:focus { outline: 2px solid var(--c-primary-border); border-color: var(--c-primary); }
 .qualification-card__actions { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 4px; border-top: 1px solid var(--c-border); }
 .qualification-card__message { font-size: 12px; color: var(--c-text-muted); }
+.qualification-schedule { width: 100%; display: grid; gap: 10px; padding: 13px; border: 1px solid var(--c-border); border-radius: var(--r-md); }
+.qualification-schedule__grid { display: grid; gap: 6px; overflow-x: auto; }
+.qualification-schedule__row { min-width: 760px; display: grid; grid-template-columns: 190px 1fr 100px; gap: 8px; align-items: center; font-size: 11px; color: var(--c-text-2); }
+.qualification-schedule__row--activity > span { padding-left: 16px; }
+.qualification-schedule__row > div { display: grid; grid-template-columns: repeat(36, 1fr); height: 18px; border: 1px solid var(--c-border); background: repeating-linear-gradient(to right, transparent 0, transparent calc(2.777% - 1px), var(--c-border) calc(2.777% - 1px), var(--c-border) 2.777%); }
+.qualification-schedule__row i { margin: 2px 0; border-radius: 2px; background: #94a3b8; }
+.qualification-schedule__row--objective { font-weight: 700; }
+.qualification-schedule__row--objective i { background: #111827; }
 .qualification-annex-history { display: flex; flex-direction: column; gap: 9px; padding: 13px; border: 1px solid var(--c-primary-border); border-radius: var(--r-md); background: var(--c-primary-light); }
 .qualification-annex-history > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .qualification-annex-history > div strong { color: var(--c-text-2); font-size: 12px; }

@@ -139,6 +139,22 @@ function QualificationCard({ task, onChanged }: { task: QualificationTask; onCha
         </div>
       )}
 
+      <section className="qualification-schedule" aria-label="Cronograma del Anexo 2">
+        <div className="annex-12-heading">
+          <div><span>Anexo 2</span><strong>Cronograma propuesto por el investigador</strong></div>
+          <small>Meses relativos a la fecha de aprobación</small>
+        </div>
+        <div className="qualification-schedule__grid">
+          {(task.annex_2_schedule?.items ?? []).map((item) => (
+            <div className={`qualification-schedule__row qualification-schedule__row--${item.type}`} key={item.id}>
+              <span>{item.label}</span>
+              <div><i style={{ gridColumn: `${item.startMonth} / span ${item.durationMonths}` }} /></div>
+              <small>Mes {item.startMonth} · {item.durationMonths} {item.durationMonths === 1 ? 'mes' : 'meses'}</small>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {reviewable && (
         <form className="qualification-card__form" onSubmit={submitReview}>
           <div className="annex-12-heading">

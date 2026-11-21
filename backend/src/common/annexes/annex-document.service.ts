@@ -1,10 +1,15 @@
 import { Injectable, Logger } from "@nestjs/common";
 import AdmZip from "adm-zip";
-import { readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
+import os from "node:os";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 export interface GeneratedAnnexData {
-  annexNumber: 11 | 12 | 13 | 23 | 27;
+  annexNumber: 2 | 11 | 12 | 13 | 23 | 27;
   researchCode: string;
   title: string;
   researcherName: string;
@@ -227,6 +232,50 @@ function checklistResultLabel(result: unknown): string {
   return "SIN RESPUESTA";
 }
 
+function setCellFill(cell: string, fill: string): string {
+  if (/<w:shd\b[^>]*\/>/.test(cell)) {
+    return cell.replace(/<w:shd\b[^>]*\/>/, `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>`);
+  }
+  return cell.replace("</w:tcPr>", `<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/></w:tcPr>`);
+}
+
+function formatShortDate(raw: unknown): string {
+  const date = new Date(String(raw ?? ""));
+  return Number.isNaN(date.getTime())
+    ? ""
+    : date.toLocaleDateString("es-EC", { timeZone: "UTC", day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function applyAnnex2Schedule(xml: string, data: Record<string, unknown>): string {
+  const items = Array.isArray(data.items) ? data.items : [];
+  return xml.replace(/<w:tbl\b[\s\S]*?<\/w:tbl>/g, (table) => {
+    if (!plainText(table).includes("Objetivo Específico 1")) return table;
+    const rows = table.match(/<w:tr\b[\s\S]*?<\/w:tr>/g) ?? [];
+    if (rows.length < 5) return table;
+    const objectiveTemplate = rows[3];
+    const activityTemplate = rows[4];
+    const generatedRows = items.map((raw) => {
+      const item = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+      const type = item.type === "objective" ? "objective" : "activity";
+      const start = Number(item.startMonth);
+      const duration = Number(item.durationMonths);
+      const range = `${formatShortDate(item.startDate)} - ${formatShortDate(item.endDate)}`;
+      const label = `${String(item.label ?? "Actividad")}${range !== " - " ? ` (${range})` : ""}`;
+      const source = type === "objective" ? objectiveTemplate : activityTemplate;
+      const cells = source.match(/<w:tc\b[\s\S]*?<\/w:tc>/g) ?? [];
+      const replaced = cells.map((cell, index) => {
+        if (index === 0) return writeCellText(cell, label);
+        const active = index >= start && index < start + duration;
+        return setCellFill(cell, active ? (type === "objective" ? "000000" : "BFBFBF") : "FFFFFF");
+      });
+      let cursor = 0;
+      return source.replace(/<w:tc\b[\s\S]*?<\/w:tc>/g, () => replaced[cursor++]);
+    });
+    const body = [...rows.slice(0, 3), ...generatedRows].join("");
+    return table.replace(rows.join(""), body);
+  });
+}
+
 @Injectable()
 export class AnnexDocumentService {
   private readonly logger = new Logger(AnnexDocumentService.name);
@@ -255,6 +304,9 @@ export class AnnexDocumentService {
     let transformedXml = sourceXml;
 
     switch (annex.annexNumber) {
+      case 2:
+        transformedXml = applyAnnex2Schedule(sourceXml, annex.data);
+        break;
       case 11:
         transformedXml = this.applyAnnex11(sourceXml, annex);
         break;
@@ -274,6 +326,20 @@ export class AnnexDocumentService {
 
     zip.updateFile("word/document.xml", Buffer.from(transformedXml, "utf8"));
     return zip.toBuffer();
+  }
+
+  async convertDocxToPdf(docx: Buffer, baseName: string): Promise<Buffer> {
+    const directory = await mkdtemp(path.join(os.tmpdir(), "ceish-annex-"));
+    const input = path.join(directory, `${baseName}.docx`);
+    try {
+      await writeFile(input, docx);
+      await execFileAsync(process.env.LIBREOFFICE_PATH || "soffice", [
+        "--headless", "--convert-to", "pdf", "--outdir", directory, input,
+      ]);
+      return await readFile(path.join(directory, `${baseName}.pdf`));
+    } finally {
+      await rm(directory, { recursive: true, force: true });
+    }
   }
 
   private applyAnnex11(xml: string, annex: GeneratedAnnexData): string {

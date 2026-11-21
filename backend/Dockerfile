@@ -21,7 +21,7 @@ ENV NODE_ENV=production
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends openssl \
+  && apt-get install -y --no-install-recommends openssl libreoffice-writer \
   && rm -rf /var/lib/apt/lists/* \
   && npm ci --omit=dev
 COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma

@@ -14,6 +14,10 @@ import {
   Annex12ChecklistItem,
   Annex12CriterionResult,
 } from "../../common/annexes/annex12.constants";
+import {
+  materializeAnnex2Schedule,
+  normalizeAnnex2Schedule,
+} from "../../common/annexes/annex2-schedule";
 
 export type QualificationReviewDecision =
   | "approved"
@@ -181,6 +185,7 @@ export class QualificationsService {
         correction_due_at: currentCycle?.correctionDueAt ?? null,
         correction_document_name: currentCycle?.correctionDocumentName ?? null,
         correction_submitted_at: currentCycle?.correctionSubmittedAt ?? null,
+        annex_2_schedule: qc.submission.annex2Schedule,
         annexes,
       };
     });
@@ -370,6 +375,22 @@ export class QualificationsService {
       const annexIds = [annex12.id];
 
       if (input.decision === "approved") {
+        const schedule = normalizeAnnex2Schedule(qc.submission.annex2Schedule);
+        if (schedule.items.length) {
+          const annex2 = await tx.researchAnnex.create({
+            data: {
+              submissionId: qc.submissionId,
+              qualificationCycleId: annexCycleId,
+              annexNumber: 2,
+              status: "completed",
+              data: materializeAnnex2Schedule(schedule, now) as any,
+              createdBy: qc.submission.studentId,
+              completedBy: qualifierId,
+              completedAt: now,
+            },
+          });
+          annexIds.push(annex2.id);
+        }
         const draft11 = await tx.researchAnnex.findFirst({
           where: {
             submissionId: qc.submissionId,

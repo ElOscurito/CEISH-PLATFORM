@@ -75,6 +75,21 @@ export class MinioService implements OnModuleInit {
     return key;
   }
 
+  async uploadGeneratedDocument(buffer: Buffer, key: string, contentType: string): Promise<string> {
+    await this.ensureBucket();
+    await this.client.putObject(this.bucket, key, buffer, buffer.length, { "Content-Type": contentType });
+    return key;
+  }
+
+  async getObjectBuffer(key: string): Promise<Buffer> {
+    const stream = await this.getObjectStream(key);
+    const chunks: Buffer[] = [];
+    for await (const chunk of stream as AsyncIterable<Buffer | Uint8Array>) {
+      chunks.push(Buffer.from(chunk));
+    }
+    return Buffer.concat(chunks);
+  }
+
   async getPresignedUrl(key: string, expirySeconds = 300): Promise<string> {
     await this.ensureBucket();
     return this.client.presignedGetObject(this.bucket, key, expirySeconds);

@@ -5,6 +5,7 @@ import {
   Get,
   NotFoundException,
   Param,
+  Query,
   UseGuards,
 } from "@nestjs/common";
 import { PrismaService } from "../../common/prisma/prisma.service";
@@ -27,6 +28,7 @@ export class AnnexesController {
   async getAnnexDocument(
     @Param("id") id: string,
     @CurrentUser() user: SessionUser,
+    @Query("format") format: "docx" | "pdf" = "docx",
   ) {
     let annex = await this.prisma.researchAnnex.findUnique({
       where: { id },
@@ -59,7 +61,7 @@ export class AnnexesController {
     const isResearcherWithExemption =
       user.role === "student" &&
       user.id === annex.submission.studentId &&
-      annex.annexNumber === 11;
+      [2, 11].includes(annex.annexNumber);
 
     if (
       user.role !== "admin" &&
@@ -126,6 +128,18 @@ export class AnnexesController {
       throw new NotFoundException(
         "No se pudo generar el documento Word del anexo",
       );
+    }
+
+    if (format === "pdf") {
+      const docx = await this.minioService.getObjectBuffer(annex.documentPath);
+      const baseName = (annex.documentName ?? `Anexo-${annex.annexNumber}`).replace(/\.docx$/i, "");
+      const pdf = await this.annexDocumentService.convertDocxToPdf(docx, baseName);
+      const pdfPath = `documents/annexes/${annex.id}/${baseName}.pdf`;
+      await this.minioService.uploadGeneratedDocument(pdf, pdfPath, "application/pdf");
+      return {
+        url: await this.minioService.getPresignedUrl(pdfPath),
+        documentName: `${baseName}.pdf`,
+      };
     }
 
     const url = await this.minioService.getPresignedUrl(annex.documentPath);
