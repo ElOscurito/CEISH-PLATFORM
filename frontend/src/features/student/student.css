@@ -235,3 +235,27 @@
 .submission-card__annex { background: #112a20; }
 .upload-zone--multiple, .upload-file-list li { background: #12161b; border-color: #343b45; }
 .student-new-research{background:transparent!important;border-color:transparent!important;box-shadow:none!important;color:#ff706c!important}.student-new-research:hover{background:#2b1a1d!important;border-color:#643236!important}.document-file-icon{display:grid;width:32px;height:34px;place-items:center;border:1px solid #46505b;border-radius:5px;background:#1a1f25;color:#c5ccd4;font-size:9px;font-weight:800}.document-file-icon--pdf{border-color:#74383c;color:#ff8a86;background:#351d20}.document-file-icon--xls{border-color:#275d43;color:#76dba2;background:#112a20}.submission-card__documents li{align-items:center}.submission-card__documents li>div{flex:1}
+/* Anexo 2 interactive 36-month timeline */
+.modal:has(.annex2-editor) { width: min(1180px, calc(100vw - 32px)); max-height: calc(100vh - 32px); }
+.annex2-editor { display: grid; gap: 12px; padding: 14px; border: 1px solid var(--c-border); border-radius: var(--r-md); background: var(--c-surface, #fff); }
+.annex2-editor__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.annex2-editor__heading h3 { margin: 0 0 4px; font-size: 14px; color: var(--c-text); }
+.annex2-editor__heading p, .annex2-editor__empty { margin: 0; font-size: 12px; color: var(--c-text-muted); }
+.annex2-timeline { min-width: 920px; overflow-x: auto; display: grid; gap: 6px; }
+.annex2-timeline__scale { display: grid; grid-template-columns: 330px repeat(36, minmax(18px, 1fr)); align-items: end; color: var(--c-text-muted); }
+.annex2-timeline__scale > span { font-size: 11px; font-weight: 700; }
+.annex2-timeline__scale small { text-align: center; font-size: 8px; }
+.annex2-row { display: grid; grid-template-columns: 330px minmax(590px, 1fr); gap: 8px; align-items: center; }
+.annex2-row__fields { display: flex; align-items: center; gap: 5px; }
+.annex2-row--activity .annex2-row__fields { padding-left: 20px; }
+.annex2-row__fields > input:first-child { width: 145px; min-width: 0; padding: 6px 7px; border: 1px solid var(--c-border); border-radius: 5px; font: inherit; }
+.annex2-row__fields label { display: flex; align-items: center; gap: 3px; font-size: 9px; color: var(--c-text-muted); }
+.annex2-row__fields input[type='number'] { width: 43px; padding: 5px 3px; border: 1px solid var(--c-border); border-radius: 5px; }
+.annex2-row__fields button { border: 0; background: transparent; color: var(--c-primary); font-size: 10px; cursor: pointer; }
+.annex2-row__track { position: relative; display: grid; grid-template-columns: repeat(36, 1fr); height: 22px; border: 1px solid var(--c-border); border-radius: 4px; background: repeating-linear-gradient(to right, transparent 0, transparent calc(2.777% - 1px), var(--c-border) calc(2.777% - 1px), var(--c-border) 2.777%); }
+.annex2-row__bar { margin: 3px 0; border-radius: 3px; background: #94a3b8; box-shadow: 0 1px 2px rgb(15 23 42 / .18); }
+.annex2-row__slider { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: grab; }
+.annex2-row__slider:active { cursor: grabbing; }
+.annex2-row--objective .annex2-row__bar { background: #111827; }
+.annex2-row--objective .annex2-row__fields > input:first-child { font-weight: 700; }
+@media (max-width: 720px) { .annex2-editor__heading { flex-direction: column; } }

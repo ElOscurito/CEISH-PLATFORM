@@ -1,12 +1,15 @@
 import { useRef, useState } from 'react';
 import { MAX_MB, validateResearchDocument } from '../../../services/storage';
+import type { Annex2Schedule } from '../../../shared/types/platform.types';
+import { Annex2ScheduleEditor } from './Annex2ScheduleEditor';
 
 interface Props {
-  onConfirm: (files: File[], title: string, comment: string) => void;
+  onConfirm: (files: File[], title: string, comment: string, schedule: Annex2Schedule) => void;
   onCancel: () => void;
   initialTitle?: string;
   initialComment?: string;
   mode?: 'create' | 'edit';
+  initialSchedule?: Annex2Schedule;
 }
 
 const MAX_FILES = 10;
@@ -27,11 +30,13 @@ export function UploadModal({
   initialTitle = '',
   initialComment = '',
   mode = 'create',
+  initialSchedule = { items: [] },
 }: Props) {
   const [files, setFiles] = useState<File[]>([]);
   const [title, setTitle] = useState(initialTitle);
   const [comment, setComment] = useState(initialComment);
   const [error, setError] = useState<string | null>(null);
+  const [schedule, setSchedule] = useState<Annex2Schedule>(initialSchedule);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const selectFiles = (selected: File[]) => {
@@ -64,7 +69,7 @@ export function UploadModal({
     setFiles((current) => current.filter((file) => fileKey(file) !== key));
   };
 
-  const canConfirm = files.length > 0 && title.trim().length > 0;
+  const canConfirm = files.length > 0 && title.trim().length > 0 && schedule.items.some((item) => item.type === 'objective');
 
   return (
     <div className="modal-backdrop" onClick={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
@@ -92,6 +97,8 @@ export function UploadModal({
               maxLength={300}
             />
           </div>
+
+          <Annex2ScheduleEditor value={schedule} onChange={setSchedule} />
 
           <button
             className={`upload-zone upload-zone--multiple ${files.length ? 'upload-zone--has-file' : ''}`}
@@ -154,7 +161,7 @@ export function UploadModal({
           <button className="eval-btn eval-btn--outline" onClick={onCancel} type="button">Cancelar</button>
           <button
             className="eval-btn eval-btn--primary"
-            onClick={() => onConfirm(files, title.trim(), comment.trim())}
+            onClick={() => onConfirm(files, title.trim(), comment.trim(), schedule)}
             disabled={!canConfirm}
             type="button"
           >

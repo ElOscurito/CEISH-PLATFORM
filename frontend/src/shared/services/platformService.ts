@@ -52,6 +52,9 @@ interface SubmissionDTO {
     size_bytes: number | string; uploaded_at: string;
   }>;
   annex_11_status: string | null;
+  annex_2_schedule: StudentSubmission['annex2Schedule'];
+  annex_2_id: string | null;
+  annex_2_status: 'draft' | 'completed';
 }
 interface AssignmentDTO {
   id: string; teacher_id: string; student_id: string; created_at: string;
@@ -115,6 +118,9 @@ function mapSubmission(d: SubmissionDTO): StudentSubmission {
     qualificationCycle: d.qualification_cycle ?? undefined,
     qualificationObservations: d.qualification_observations ?? undefined,
     correctionDueAt: d.correction_due_at ?? undefined,
+    annex2Schedule: d.annex_2_schedule ?? { items: [] },
+    annex2Id: d.annex_2_id ?? undefined,
+    annex2Status: d.annex_2_status ?? 'draft',
   };
 }
 
@@ -216,9 +222,10 @@ export const platformService = {
       mimeType: string;
       sizeBytes: number;
     }>,
+    annex2Schedule: StudentSubmission['annex2Schedule'],
   ): Promise<StudentSubmission> {
     const data = await apiSend<SubmissionDTO>('POST', '/api/submissions', {
-      studentId, title, comment, documents,
+      studentId, title, comment, documents, annex2Schedule,
     });
     return mapSubmission(data);
   },
@@ -246,6 +253,10 @@ export const platformService = {
 
   async deleteSubmission(id: string): Promise<void> {
     await apiSend('DELETE', `/api/submissions/${id}`);
+  },
+
+  async updateAnnex2Schedule(id: string, schedule: StudentSubmission['annex2Schedule']): Promise<void> {
+    await apiSend('PATCH', `/api/submissions/${id}/annex-2-schedule`, { schedule });
   },
 
   // Assignments

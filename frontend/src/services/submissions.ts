@@ -6,7 +6,7 @@
 
 import { storageService } from './storage';
 import { platformService } from '../shared/services/platformService';
-import type { StudentSubmission } from '../shared/types/platform.types';
+import type { Annex2Schedule, StudentSubmission } from '../shared/types/platform.types';
 
 export const submissionsService = {
   /** Entrega del estudiante (o null). */
@@ -25,6 +25,7 @@ export const submissionsService = {
     title: string,
     files: File[],
     comment: string,
+    annex2Schedule: Annex2Schedule,
   ): Promise<StudentSubmission> {
     const uploaded = await Promise.all(files.map((file) => storageService.uploadDocument(file)));
     const documents = uploaded.map((document) => ({
@@ -33,7 +34,7 @@ export const submissionsService = {
       mimeType: document.mimeType,
       sizeBytes: document.size,
     }));
-    return platformService.createSubmission(studentId, title, comment, documents);
+    return platformService.createSubmission(studentId, title, comment, documents, annex2Schedule);
   },
 
   /** Reemplaza el conjunto documental de una investigación aún no revisada. */
@@ -42,6 +43,7 @@ export const submissionsService = {
     title: string,
     files: File[],
     comment: string,
+    annex2Schedule: Annex2Schedule,
   ): Promise<StudentSubmission> {
     const uploaded = await Promise.all(files.map((file) => storageService.uploadDocument(file)));
     const documents = uploaded.map((document) => ({
@@ -50,12 +52,18 @@ export const submissionsService = {
       mimeType: document.mimeType,
       sizeBytes: document.size,
     }));
-    return platformService.updateSubmission(id, { title, comment, documents });
+    const updated = await platformService.updateSubmission(id, { title, comment, documents });
+    await platformService.updateAnnex2Schedule(id, annex2Schedule);
+    return { ...updated, annex2Schedule };
   },
 
   /** Solo actualiza el comentario, sin tocar el documento. */
   updateComment(id: string, comment: string): Promise<StudentSubmission> {
     return platformService.updateSubmission(id, { comment });
+  },
+
+  async updateAnnex2Schedule(id: string, annex2Schedule: Annex2Schedule): Promise<void> {
+    await platformService.updateAnnex2Schedule(id, annex2Schedule);
   },
 
   remove(id: string): Promise<void> {

@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../store/authStore';
 import { submissionsService } from '../../services/submissions';
-import type { StudentSubmission } from '../../shared/types/platform.types';
+import type { Annex2Schedule, StudentSubmission } from '../../shared/types/platform.types';
 import { SubmissionCard } from './components/SubmissionCard';
 import { UploadModal } from './components/UploadModal';
 import { CorrectionUploadModal } from './components/CorrectionUploadModal';
+import { Annex2ScheduleModal } from './components/Annex2ScheduleModal';
 import { workflowService } from '../../services/workflowService';
 import './student.css';
 
@@ -17,6 +18,7 @@ export function SubmissionPage() {
   const [modalMode, setModalMode] = useState<ModalMode>(null);
   const [editingSubmission, setEditingSubmission] = useState<StudentSubmission | null>(null);
   const [correctionSubmission, setCorrectionSubmission] = useState<StudentSubmission | null>(null);
+  const [scheduleSubmission, setScheduleSubmission] = useState<StudentSubmission | null>(null);
 
   const reloadSubmissions = async () => {
     setSubmissions(await submissionsService.getAllForStudent());
@@ -29,13 +31,13 @@ export function SubmissionPage() {
     });
   }, [currentUser.id]);
 
-  const handleConfirm = async (files: File[], title: string, comment: string) => {
+  const handleConfirm = async (files: File[], title: string, comment: string, schedule: Annex2Schedule) => {
     try {
       if (modalMode === 'create') {
-        const sub = await submissionsService.createWithDocuments(currentUser.id, title, files, comment);
+        const sub = await submissionsService.createWithDocuments(currentUser.id, title, files, comment, schedule);
         setSubmissions((current) => [sub, ...current]);
       } else if (modalMode === 'edit' && editingSubmission) {
-        const sub = await submissionsService.updateWithDocuments(editingSubmission.id, title, files, comment);
+        const sub = await submissionsService.updateWithDocuments(editingSubmission.id, title, files, comment, schedule);
         setSubmissions((current) => current.map((item) => item.id === sub.id ? sub : item));
       }
       setModalMode(null);
@@ -65,6 +67,27 @@ export function SubmissionPage() {
     await workflowService.submitCorrection(correctionSubmission.qualificationId, file);
     await reloadSubmissions();
     setCorrectionSubmission(null);
+  };
+
+  const handleDownloadAnnex2 = async (submission: StudentSubmission, format: 'docx' | 'pdf') => {
+    if (!submission.annex2Id) return;
+    try {
+      const { url } = await workflowService.getAnnexDocumentUrl(submission.annex2Id, format);
+      window.open(url, '_blank', 'noopener');
+    } catch (e) {
+      window.alert(`No se pudo descargar el Anexo 2: ${(e as Error).message}`);
+    }
+  };
+
+  const handleSaveAnnex2 = async (schedule: Annex2Schedule) => {
+    if (!scheduleSubmission) return;
+    try {
+      await submissionsService.updateAnnex2Schedule(scheduleSubmission.id, schedule);
+      setSubmissions((current) => current.map((item) => item.id === scheduleSubmission.id ? { ...item, annex2Schedule: schedule } : item));
+      setScheduleSubmission(null);
+    } catch (e) {
+      window.alert(`No se pudo guardar el cronograma: ${(e as Error).message}`);
+    }
   };
 
   return (
@@ -100,6 +123,8 @@ export function SubmissionPage() {
                 onEdit={() => { setEditingSubmission(submission); setModalMode('edit'); }}
                 onDelete={() => void handleDelete(submission)}
                 onSubmitCorrections={() => setCorrectionSubmission(submission)}
+                onDownloadAnnex2={(format) => void handleDownloadAnnex2(submission, format)}
+                onEditAnnex2={() => setScheduleSubmission(submission)}
               />
             ))}
           </div>
@@ -128,6 +153,7 @@ export function SubmissionPage() {
           mode={modalMode}
           initialTitle={editingSubmission?.title}
           initialComment={editingSubmission?.comment}
+          initialSchedule={editingSubmission?.annex2Schedule}
           onConfirm={handleConfirm}
           onCancel={() => setModalMode(null)}
         />
@@ -136,6 +162,13 @@ export function SubmissionPage() {
         <CorrectionUploadModal
           onConfirm={handleCorrection}
           onCancel={() => setCorrectionSubmission(null)}
+        />
+      )}
+      {scheduleSubmission && (
+        <Annex2ScheduleModal
+          initialSchedule={scheduleSubmission.annex2Schedule}
+          onConfirm={(schedule) => void handleSaveAnnex2(schedule)}
+          onCancel={() => setScheduleSubmission(null)}
         />
       )}
     </div>

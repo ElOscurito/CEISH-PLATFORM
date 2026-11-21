@@ -34,6 +34,19 @@ export interface ResearchDocument {
   uploadedAt: string;
 }
 
+export interface Annex2ScheduleItem {
+  id: string;
+  parentId: string | null;
+  type: 'objective' | 'activity';
+  label: string;
+  startMonth: number;
+  durationMonths: number;
+}
+
+export interface Annex2Schedule {
+  items: Annex2ScheduleItem[];
+}
+
 export interface StudentSubmission {
   id: string;
   studentId: string;
@@ -56,6 +69,9 @@ export interface StudentSubmission {
   qualificationCycle?: number;
   qualificationObservations?: string;
   correctionDueAt?: string;
+  annex2Schedule: Annex2Schedule;
+  annex2Id?: string;
+  annex2Status: 'draft' | 'completed';
 }
 
 export type StageStatus = 'pending' | 'in-progress' | 'completed';

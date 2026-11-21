@@ -1,6 +1,7 @@
 import { apiGet, apiRequest } from './http';
 import { storageService } from './storage';
 import type { Annex12ChecklistItem } from '../shared/annex12';
+import type { Annex2Schedule } from '../shared/types/platform.types';
 
 export type RegistrationStatus = 'pending' | 'approved' | 'rejected';
 export type ResearcherType = 'internal' | 'external';
@@ -91,6 +92,7 @@ export interface QualificationTask {
   correction_document_name: string | null;
   correction_submitted_at: string | null;
   updated_at: string;
+  annex_2_schedule: Annex2Schedule;
   annexes: QualificationAnnex[];
 }
 
@@ -189,8 +191,8 @@ export const workflowService = {
     return apiPatch(`/api/stratifications/${id}/annex-11`, { data });
   },
 
-  getAnnexDocumentUrl(id: string): Promise<{ url: string; documentName: string }> {
-    return apiGet(`/api/annexes/${id}/document`);
+  getAnnexDocumentUrl(id: string, format: 'docx' | 'pdf' = 'docx'): Promise<{ url: string; documentName: string }> {
+    return apiGet(`/api/annexes/${id}/document?format=${format}`);
   },
 
   saveNoRiskDecision(id: string, annex27: Annex27Payload): Promise<{ result: string; message: string }> {

@@ -6,6 +6,8 @@ interface Props {
   onEdit: () => void;
   onDelete: () => void;
   onSubmitCorrections: () => void;
+  onDownloadAnnex2: (format: 'docx' | 'pdf') => void;
+  onEditAnnex2: () => void;
 }
 
 function formatDateTime(iso: string): string {
@@ -55,7 +57,7 @@ const QUALIFICATION_LABEL = {
   expired: 'Investigación anulada por vencimiento del plazo',
 } as const;
 
-export function SubmissionCard({ submission, onView, onEdit, onDelete, onSubmitCorrections }: Props) {
+export function SubmissionCard({ submission, onView, onEdit, onDelete, onSubmitCorrections, onDownloadAnnex2, onEditAnnex2 }: Props) {
   const status = STATUS_CONFIG[submission.status];
   const isReviewed = submission.status === 'reviewed';
   const canModify = submission.classificationStatus === 'awaiting-assignment'
@@ -105,6 +107,20 @@ export function SubmissionCard({ submission, onView, onEdit, onDelete, onSubmitC
             </li>
           ))}
         </ul>
+      </div>
+
+      <div className="submission-card__annex">
+        <span className="submission-card__comment-label">Anexo 2 · Cronograma de trabajo</span>
+        <strong>{submission.annex2Status === 'completed' ? 'Fechas calculadas desde la aprobación' : 'Cronograma editable pendiente de aprobación'}</strong>
+        {submission.annex2Status !== 'completed' && (
+          <button className="eval-btn eval-btn--outline" type="button" onClick={onEditAnnex2}>Editar cronograma</button>
+        )}
+        {submission.annex2Id && (
+          <div className="submission-card__actions">
+            <button className="eval-btn eval-btn--outline" type="button" onClick={() => onDownloadAnnex2('docx')}>Descargar Word</button>
+            <button className="eval-btn eval-btn--outline" type="button" onClick={() => onDownloadAnnex2('pdf')}>Descargar PDF</button>
+          </div>
+        )}
       </div>
 
       <div className="submission-card__annex">
