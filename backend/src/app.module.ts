@@ -10,6 +10,7 @@ import { StratificationModule } from "./modules/stratification/stratification.mo
 import { QualificationsModule } from "./modules/qualification/qualifications.module";
 import { AnnexesModule } from "./modules/annexes/annexes.module";
 import { AdminModule } from "./modules/admin/admin.module";
+import { PerformanceModule } from "./modules/extensions/performance/performance.module";
 import { ReviewsModule } from "./modules/reviews/reviews.module";
 
 @Module({
@@ -29,6 +30,7 @@ import { ReviewsModule } from "./modules/reviews/reviews.module";
     AnnexesModule,
     AdminModule,
     ReviewsModule,
+    PerformanceModule,
   ],
 })
 export class AppModule {}
