@@ -89,6 +89,7 @@ const ADMIN_NAV: NavItem[] = [
       </svg>
     ),
   },
+  { to: '/admin/desempeno', label: 'Desempeño', icon: <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M4 14V9m5 5V4m5 10V7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></svg> },
 ];
 
 const ROLE_NAV = { student: STUDENT_NAV, evaluator: EVALUATOR_NAV, admin: ADMIN_NAV };

@@ -8,6 +8,7 @@ import { AppShell } from '../../shared/components/AppShell';
 import { SubmissionPage } from '../../features/student/SubmissionPage';
 import { EvaluatorDashboard } from '../../features/evaluator/EvaluatorDashboard';
 import { ReviewPage } from '../../features/evaluator/components/ReviewPage';
+import { MemberPerformanceDashboard } from '../../features/extensions/performance/MemberPerformanceDashboard';
 import { AdminDashboard } from '../../features/admin/AdminDashboard';
 import { RegistrationRequestsPanel } from '../../features/admin/components/RegistrationRequestsPanel';
 import { ResearchManagementPanel } from '../../features/admin/components/ResearchManagementPanel';
@@ -53,6 +54,7 @@ export function AppRouter() {
           <Route path="/evaluador" element={<RequireRole role="evaluator"><EvaluatorDashboard /></RequireRole>} />
           <Route path="/evaluador/estratificacion" element={<RequireRole role="evaluator"><StratificationDashboard /></RequireRole>} />
           <Route path="/evaluador/calificacion" element={<RequireRole role="evaluator"><QualificationDashboard /></RequireRole>} />
+          <Route path="/admin/desempeno" element={<RequireRole role="admin"><MemberPerformanceDashboard /></RequireRole>} />
           <Route path="/admin" element={<RequireRole role="admin"><AdminDashboard /></RequireRole>} />
           <Route path="/admin/solicitudes" element={<RequireRole role="admin"><RegistrationRequestsPanel /></RequireRole>} />
           <Route path="/admin/investigaciones" element={<RequireRole role="admin"><ResearchManagementPanel /></RequireRole>} />
